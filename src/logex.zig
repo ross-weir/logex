@@ -26,7 +26,7 @@ fn LoggerOptions(comptime sinks: anytype) type {
     });
 }
 
-pub fn LogEx(comptime sink_types: anytype) type {
+pub fn Logex(comptime sink_types: anytype) type {
     return struct {
         const Self = @This();
 

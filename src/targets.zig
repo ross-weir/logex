@@ -18,7 +18,7 @@ pub fn ConsoleTarget(comptime options: ConsoleTargetOptions) type {
             comptime scope: @Type(.enum_literal),
             comptime format: []const u8,
             args: anytype,
-        ) !void {
+        ) void {
             if (comptime @intFromEnum(message_level) > @intFromEnum(options.level)) return;
 
             const message = options.formatFn(message_level, scope, format, args);
