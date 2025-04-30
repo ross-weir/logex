@@ -26,16 +26,36 @@ fn LoggerOptions(comptime sinks: anytype) type {
     });
 }
 
+const State = enum(u8) {
+    uninitialized,
+    initializing,
+    initialized,
+};
+var state: std.atomic.Value(State) = .init(.uninitialized);
+
+pub const LogexError = error{AlreadyInitialized};
+
 pub fn Logex(comptime sink_types: anytype) type {
     return struct {
-        const Self = @This();
-
         const Options = LoggerOptions(sink_types);
-        var options: Options = undefined;
+        var options: ?Options = null;
 
-        pub fn init(opts: Self.Options) void {
-            // make thread-safe
-            options = opts;
+        pub fn init(opts: Options) LogexError!void {
+            if (state.cmpxchgStrong(.uninitialized, .initializing, .acquire, .acquire)) |current| {
+                switch (current) {
+                    .initialized => return LogexError.AlreadyInitialized,
+                    .initializing => {
+                        while (state.load(.acquire) == .initializing) {
+                            std.atomic.spinLoopHint();
+                        }
+                        return LogexError.AlreadyInitialized;
+                    },
+                    .uninitialized => unreachable,
+                }
+            } else {
+                options = opts;
+                state.store(.initialized, .seq_cst);
+            }
         }
 
         pub fn logFn(
@@ -44,12 +64,12 @@ pub fn Logex(comptime sink_types: anytype) type {
             comptime fmt: []const u8,
             args: anytype,
         ) void {
-            // make thread safe
+            if (options == null) return;
 
-            const opt = @typeInfo(@TypeOf(options));
+            const opts = @typeInfo(@TypeOf(options.?));
 
-            inline for (opt.@"struct".fields) |field| {
-                var sink_opt = @field(options, field.name);
+            inline for (opts.@"struct".fields) |field| {
+                var sink_opt = @field(options.?, field.name);
                 if (sink_opt) |*sink| {
                     sink.log(message_level, scope, fmt, args);
                 }
