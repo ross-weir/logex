@@ -22,5 +22,33 @@ pub fn TextFormatter() type {
 }
 
 pub fn JsonFormatter() type {
-    return struct {};
+    return struct {
+        const Self = @This();
+
+        pub const init: Self = .{};
+
+        pub fn format(
+            _: *Self,
+            writer: anytype,
+            comptime message_level: std.log.Level,
+            comptime scope: @Type(.enum_literal),
+            comptime fmt: []const u8,
+            args: anytype,
+        ) @TypeOf(writer).Error!void {
+            // try avoid allocations for now
+            var buf: [2048]u8 = undefined;
+            const message = try std.fmt.bufPrint(&buf, fmt, args);
+            const level = comptime message_level.asText();
+            try std.json.stringify(
+                .{
+                    .level = level,
+                    .scope = @tagName(scope),
+                    .message = message,
+                },
+                .{},
+                writer,
+            );
+            try writer.writeByte('\n');
+        }
+    };
 }
