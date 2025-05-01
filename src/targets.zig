@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub fn ConsoleTarget(comptime level: std.log.Level, Formatter: type) type {
+pub fn ConsoleTarget(comptime level: std.log.Level, comptime Formatter: type) type {
     return struct {
         const Self = @This();
 
@@ -33,7 +33,7 @@ pub fn ConsoleTarget(comptime level: std.log.Level, Formatter: type) type {
     };
 }
 
-pub fn FileTarget(comptime level: std.log.Level, Formatter: type) type {
+pub fn FileTarget(comptime level: std.log.Level, comptime Formatter: type) type {
     return struct {
         const Self = @This();
 
