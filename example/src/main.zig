@@ -12,10 +12,11 @@ const Logger = logex.Logex(.{
 
 pub fn main() !void {
     try Logger.init(.{
-        .console = .{},
-        .file = try .init("example.log"),
+        .console = .init,
+        .file = try .init("app.log"),
     });
 
     std.log.debug("hello world!", .{});
     std.log.info("higher log output to file", .{});
+    std.log.info("second info log", .{});
 }

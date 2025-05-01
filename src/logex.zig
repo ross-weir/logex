@@ -1,11 +1,11 @@
 const std = @import("std");
 
-fn LoggerOptions(comptime sinks: anytype) type {
-    const info = @typeInfo(@TypeOf(sinks));
+fn LoggerOptions(comptime targets: anytype) type {
+    const info = @typeInfo(@TypeOf(targets));
     var fields: [info.@"struct".fields.len]std.builtin.Type.StructField = undefined;
 
     inline for (info.@"struct".fields, 0..) |field, i| {
-        const T = @field(sinks, field.name);
+        const T = @field(targets, field.name);
 
         fields[i] = .{
             .name = field.name,
@@ -33,22 +33,22 @@ const State = enum(u8) {
 };
 var state: std.atomic.Value(State) = .init(.uninitialized);
 
-pub const LogexError = error{AlreadyInitialized};
+pub const InitializeError = error{AlreadyInitialized};
 
-pub fn Logex(comptime sink_types: anytype) type {
+pub fn Logex(comptime targets: anytype) type {
     return struct {
-        const Options = LoggerOptions(sink_types);
+        pub const Options = LoggerOptions(targets);
         var options: ?Options = null;
 
-        pub fn init(opts: Options) LogexError!void {
+        pub fn init(opts: Options) InitializeError!void {
             if (state.cmpxchgStrong(.uninitialized, .initializing, .acquire, .acquire)) |current| {
                 switch (current) {
-                    .initialized => return LogexError.AlreadyInitialized,
+                    .initialized => return InitializeError.AlreadyInitialized,
                     .initializing => {
                         while (state.load(.acquire) == .initializing) {
                             std.atomic.spinLoopHint();
                         }
-                        return LogexError.AlreadyInitialized;
+                        return InitializeError.AlreadyInitialized;
                     },
                     .uninitialized => unreachable,
                 }
@@ -59,7 +59,7 @@ pub fn Logex(comptime sink_types: anytype) type {
         }
 
         pub fn logFn(
-            comptime message_level: std.log.Level,
+            comptime level: std.log.Level,
             comptime scope: @Type(.enum_literal),
             comptime fmt: []const u8,
             args: anytype,
@@ -69,9 +69,8 @@ pub fn Logex(comptime sink_types: anytype) type {
             const opts = @typeInfo(@TypeOf(options.?));
 
             inline for (opts.@"struct".fields) |field| {
-                var sink_opt = @field(options.?, field.name);
-                if (sink_opt) |*sink| {
-                    sink.log(message_level, scope, fmt, args);
+                if (@field(options.?, field.name)) |*target| {
+                    target.log(level, scope, fmt, args);
                 }
             }
         }
