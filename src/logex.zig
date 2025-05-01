@@ -70,7 +70,8 @@ pub fn Logex(comptime targets: anytype) type {
 
             inline for (opts.@"struct".fields) |field| {
                 if (@field(options.?, field.name)) |*target| {
-                    target.log(level, scope, fmt, args);
+                    // TODO: allow users to provide a error handler?
+                    target.log(level, scope, fmt, args) catch {};
                 }
             }
         }

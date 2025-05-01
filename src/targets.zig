@@ -18,7 +18,7 @@ pub fn ConsoleTarget(comptime options: ConsoleTargetOptions) type {
             comptime scope: @Type(.enum_literal),
             comptime format: []const u8,
             args: anytype,
-        ) void {
+        ) !void {
             if (comptime @intFromEnum(level) > @intFromEnum(options.level)) return;
 
             const message = options.formatFn(level, scope, format, args);
@@ -29,8 +29,8 @@ pub fn ConsoleTarget(comptime options: ConsoleTargetOptions) type {
             std.debug.lockStdErr();
             defer std.debug.unlockStdErr();
             nosuspend {
-                writer.writeAll(message) catch return;
-                bw.flush() catch return;
+                try writer.writeAll(message);
+                try bw.flush();
             }
         }
     };
@@ -65,14 +65,14 @@ pub fn FileTarget(comptime options: FileTargetOptions) type {
             comptime scope: @Type(.enum_literal),
             comptime format: []const u8,
             args: anytype,
-        ) void {
+        ) !void {
             if (comptime @intFromEnum(level) > @intFromEnum(options.level)) return;
 
             const message = options.formatFn(level, scope, format, args);
 
             self.mutex.lock();
             defer self.mutex.unlock();
-            self.file.writer().writeAll(message) catch return;
+            try self.file.writer().writeAll(message);
         }
     };
 }
