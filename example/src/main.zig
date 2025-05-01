@@ -5,15 +5,18 @@ pub const std_options: std.Options = .{
     .logFn = Logger.logFn,
 };
 
+const TextLogFormatter = logex.formatters.TextFormatter();
 const Logger = logex.Logex(.{
-    .console = logex.targets.ConsoleTarget(.{ .level = .debug }),
-    .file = logex.targets.FileTarget(.{ .level = .info }),
+    .console = logex.targets.ConsoleTarget(.debug, TextLogFormatter),
+    .file = logex.targets.FileTarget(.info, TextLogFormatter),
 });
 
 pub fn main() !void {
+    const text_formatter: TextLogFormatter = .init;
+
     try Logger.init(.{
-        .console = .init,
-        .file = try .init("app.log"),
+        .console = .init(text_formatter),
+        .file = try .init(text_formatter, "app.log"),
     });
 
     std.log.debug("hello world!", .{});
