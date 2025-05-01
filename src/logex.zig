@@ -1,13 +1,13 @@
 const std = @import("std");
 
 fn LoggerOptions(comptime targets: anytype) type {
-    const info = @typeInfo(@TypeOf(targets));
-    var fields: [info.@"struct".fields.len]std.builtin.Type.StructField = undefined;
+    const fields = std.meta.fields(@TypeOf(targets));
+    var new_fields: [fields.len]std.builtin.Type.StructField = undefined;
 
-    inline for (info.@"struct".fields, 0..) |field, i| {
+    inline for (fields, 0..) |field, i| {
         const T = @field(targets, field.name);
 
-        fields[i] = .{
+        new_fields[i] = .{
             .name = field.name,
             .type = ?T,
             .default_value_ptr = null,
@@ -19,7 +19,7 @@ fn LoggerOptions(comptime targets: anytype) type {
     return @Type(.{
         .@"struct" = .{
             .layout = .auto,
-            .fields = &fields,
+            .fields = &new_fields,
             .decls = &[_]std.builtin.Type.Declaration{},
             .is_tuple = false,
         },
@@ -38,7 +38,7 @@ pub const InitializeError = error{AlreadyInitialized};
 pub fn Logex(comptime targets: anytype) type {
     return struct {
         pub const Options = LoggerOptions(targets);
-        var options: ?Options = null;
+        var options: Options = undefined;
 
         pub fn init(opts: Options) InitializeError!void {
             if (state.cmpxchgStrong(.uninitialized, .initializing, .acquire, .acquire)) |current| {
@@ -64,12 +64,10 @@ pub fn Logex(comptime targets: anytype) type {
             comptime fmt: []const u8,
             args: anytype,
         ) void {
-            if (options == null) return;
+            if (state.load(.seq_cst) != .initialized) return;
 
-            const opts = @typeInfo(@TypeOf(options.?));
-
-            inline for (opts.@"struct".fields) |field| {
-                if (@field(options.?, field.name)) |*target| {
+            inline for (std.meta.fields(@TypeOf(options))) |field| {
+                if (@field(options, field.name)) |*target| {
                     // TODO: allow users to provide a error handler?
                     target.log(level, scope, fmt, args) catch {};
                 }
