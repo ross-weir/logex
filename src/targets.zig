@@ -1,27 +1,24 @@
 const std = @import("std");
-const fmt = @import("format.zig");
 
-pub const ConsoleTargetOptions = struct {
-    level: std.log.Level,
-    formatFn: fmt.FormatFn = fmt.defaultFormat,
-};
-
-pub fn ConsoleTarget(comptime options: ConsoleTargetOptions) type {
+pub fn ConsoleTarget(comptime level: std.log.Level, comptime Formatter: type) type {
     return struct {
         const Self = @This();
 
-        pub const init: Self = .{};
+        formatter: Formatter,
+
+        pub fn init(formatter: Formatter) Self {
+            return .{ .formatter = formatter };
+        }
 
         pub fn log(
-            _: *Self,
-            comptime level: std.log.Level,
+            self: *Self,
+            comptime message_level: std.log.Level,
             comptime scope: @Type(.enum_literal),
             comptime format: []const u8,
             args: anytype,
         ) !void {
-            if (comptime @intFromEnum(level) > @intFromEnum(options.level)) return;
+            if (comptime @intFromEnum(message_level) > @intFromEnum(level)) return;
 
-            const message = options.formatFn(level, scope, format, args);
             const stderr = std.io.getStdErr().writer();
             var bw = std.io.bufferedWriter(stderr);
             const writer = bw.writer();
@@ -29,26 +26,22 @@ pub fn ConsoleTarget(comptime options: ConsoleTargetOptions) type {
             std.debug.lockStdErr();
             defer std.debug.unlockStdErr();
             nosuspend {
-                try writer.writeAll(message);
+                try self.formatter.format(writer, message_level, scope, format, args);
                 try bw.flush();
             }
         }
     };
 }
 
-pub const FileTargetOptions = struct {
-    level: std.log.Level,
-    formatFn: fmt.FormatFn = fmt.defaultFormat,
-};
-
-pub fn FileTarget(comptime options: FileTargetOptions) type {
+pub fn FileTarget(comptime level: std.log.Level, comptime Formatter: type) type {
     return struct {
         const Self = @This();
 
+        formatter: Formatter,
         file: std.fs.File,
         mutex: std.Thread.Mutex = .{},
 
-        pub fn init(filepath: []const u8) !Self {
+        pub fn init(formatter: Formatter, filepath: []const u8) !Self {
             const flags: std.fs.File.CreateFlags = .{ .truncate = false };
             const file = try if (std.fs.path.isAbsolute(filepath))
                 std.fs.createFileAbsolute(filepath, flags)
@@ -56,23 +49,21 @@ pub fn FileTarget(comptime options: FileTargetOptions) type {
                 std.fs.cwd().createFile(filepath, flags);
             try file.seekTo(try file.getEndPos());
 
-            return .{ .file = file };
+            return .{ .formatter = formatter, .file = file };
         }
 
         pub fn log(
             self: *Self,
-            comptime level: std.log.Level,
+            comptime message_level: std.log.Level,
             comptime scope: @Type(.enum_literal),
             comptime format: []const u8,
             args: anytype,
         ) !void {
-            if (comptime @intFromEnum(level) > @intFromEnum(options.level)) return;
-
-            const message = options.formatFn(level, scope, format, args);
+            if (comptime @intFromEnum(message_level) > @intFromEnum(level)) return;
 
             self.mutex.lock();
             defer self.mutex.unlock();
-            try self.file.writer().writeAll(message);
+            try self.formatter.format(self.file.writer(), message_level, scope, format, args);
         }
     };
 }

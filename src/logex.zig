@@ -12,7 +12,7 @@ fn LoggerOptions(comptime targets: anytype) type {
             .type = ?T,
             .default_value_ptr = null,
             .is_comptime = false,
-            .alignment = @alignOf(?T),
+            .alignment = std.meta.alignment(?T),
         };
     }
 
