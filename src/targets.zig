@@ -10,18 +10,18 @@ pub fn ConsoleTarget(comptime options: ConsoleTargetOptions) type {
     return struct {
         const Self = @This();
 
-        var default: Self = .{};
+        pub const init: Self = .{};
 
         pub fn log(
             _: *Self,
-            comptime message_level: std.log.Level,
+            comptime level: std.log.Level,
             comptime scope: @Type(.enum_literal),
             comptime format: []const u8,
             args: anytype,
         ) void {
-            if (comptime @intFromEnum(message_level) > @intFromEnum(options.level)) return;
+            if (comptime @intFromEnum(level) > @intFromEnum(options.level)) return;
 
-            const message = options.formatFn(message_level, scope, format, args);
+            const message = options.formatFn(level, scope, format, args);
             const stderr = std.io.getStdErr().writer();
             var bw = std.io.bufferedWriter(stderr);
             const writer = bw.writer();
@@ -49,24 +49,26 @@ pub fn FileTarget(comptime options: FileTargetOptions) type {
         mutex: std.Thread.Mutex = .{},
 
         pub fn init(filepath: []const u8) !Self {
-            const file = try std.fs.cwd().createFile(
-                filepath,
-                .{ .read = true, .truncate = false },
-            );
+            const flags: std.fs.File.CreateFlags = .{ .truncate = false };
+            const file = try if (std.fs.path.isAbsolute(filepath))
+                std.fs.createFileAbsolute(filepath, flags)
+            else
+                std.fs.cwd().createFile(filepath, flags);
+            try file.seekTo(try file.getEndPos());
 
             return .{ .file = file };
         }
 
         pub fn log(
             self: *Self,
-            comptime message_level: std.log.Level,
+            comptime level: std.log.Level,
             comptime scope: @Type(.enum_literal),
             comptime format: []const u8,
             args: anytype,
         ) void {
-            if (comptime @intFromEnum(message_level) > @intFromEnum(options.level)) return;
+            if (comptime @intFromEnum(level) > @intFromEnum(options.level)) return;
 
-            const message = options.formatFn(message_level, scope, format, args);
+            const message = options.formatFn(level, scope, format, args);
 
             self.mutex.lock();
             defer self.mutex.unlock();
