@@ -1,5 +1,4 @@
 const std = @import("std");
-const fmt = @import("format.zig");
 
 pub fn ConsoleTarget(comptime level: std.log.Level, Formatter: type) type {
     return struct {
