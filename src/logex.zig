@@ -1,11 +1,11 @@
 const std = @import("std");
 
-fn LoggerOptions(comptime targets: anytype) type {
-    const fields = std.meta.fields(@TypeOf(targets));
+fn LoggerOptions(comptime appenders: anytype) type {
+    const fields = std.meta.fields(@TypeOf(appenders));
     var new_fields: [fields.len]std.builtin.Type.StructField = undefined;
 
     inline for (fields, 0..) |field, i| {
-        const T = @field(targets, field.name);
+        const T = @field(appenders, field.name);
 
         new_fields[i] = .{
             .name = field.name,
@@ -35,9 +35,9 @@ var state: std.atomic.Value(State) = .init(.uninitialized);
 
 pub const InitializeError = error{AlreadyInitialized};
 
-pub fn Logex(comptime targets: anytype) type {
+pub fn Logex(comptime appenders: anytype) type {
     return struct {
-        pub const Options = LoggerOptions(targets);
+        pub const Options = LoggerOptions(appenders);
         var options: Options = undefined;
 
         pub fn init(opts: Options) InitializeError!void {
@@ -67,9 +67,9 @@ pub fn Logex(comptime targets: anytype) type {
             if (state.load(.seq_cst) != .initialized) return;
 
             inline for (std.meta.fields(@TypeOf(options))) |field| {
-                if (@field(options, field.name)) |*target| {
+                if (@field(options, field.name)) |*appender| {
                     // TODO: allow users to provide a error handler?
-                    target.log(level, scope, fmt, args) catch {};
+                    appender.log(level, scope, fmt, args) catch {};
                 }
             }
         }

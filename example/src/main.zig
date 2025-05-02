@@ -9,8 +9,8 @@ const TextFormatter = logex.formatters.TextFormatter();
 const JsonFormatter = logex.formatters.JsonFormatter();
 
 const Logger = logex.Logex(.{
-    .console = logex.targets.ConsoleTarget(.debug, TextFormatter),
-    .file = logex.targets.FileTarget(.info, JsonFormatter),
+    .console = logex.appenders.Console(.debug, TextFormatter),
+    .file = logex.appenders.File(.info, JsonFormatter),
 });
 
 pub fn main() !void {
