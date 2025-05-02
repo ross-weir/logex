@@ -61,7 +61,6 @@ pub fn Console(
             std.debug.lockStdErr();
             defer std.debug.unlockStdErr();
             nosuspend {
-                // try formatFn(writer, message_level, scope, format, args, opts);
                 try formatFn(writer, message_level, scope, format, args, opts);
                 try bw.flush();
             }
