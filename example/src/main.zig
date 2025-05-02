@@ -5,21 +5,30 @@ pub const std_options: std.Options = .{
     .logFn = Logger.logFn,
 };
 
-const TextFormatter = logex.formatters.TextFormatter();
-const JsonFormatter = logex.formatters.JsonFormatter();
+pub fn formatFn(
+    writer: anytype,
+    comptime _: std.log.Level,
+    comptime _: @Type(.enum_literal),
+    comptime format: []const u8,
+    args: anytype,
+    comptime _: logex.Options,
+) @TypeOf(writer).Error!void {
+    try writer.print("[custom] " ++ format ++ "\n", args);
+}
 
 const Logger = logex.Logex(.{
-    .console = logex.targets.ConsoleTarget(.debug, TextFormatter),
-    .file = logex.targets.FileTarget(.info, JsonFormatter),
+    .console = logex.appenders.Console(.debug, .{
+        .format = .{ .custom = formatFn },
+    }),
+    .file = logex.appenders.File(.info, .{
+        .format = .json,
+    }),
 });
 
 pub fn main() !void {
-    const text_formatter: TextFormatter = .init;
-    const json_formatter: JsonFormatter = .init;
-
     try Logger.init(.{
-        .console = .init(text_formatter),
-        .file = try .init(json_formatter, "app.log"),
+        .console = .init,
+        .file = try .init("app.log"),
     });
 
     std.log.debug("hello world!", .{});
