@@ -1,6 +1,5 @@
 const std = @import("std");
 const Options = @import("root.zig").Options;
-const formatFn = @import("format.zig").formatFn;
 
 pub fn Writer(
     comptime level: std.log.Level,
