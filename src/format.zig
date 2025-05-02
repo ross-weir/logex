@@ -1,26 +1,36 @@
 const std = @import("std");
 const Options = @import("root.zig").Options;
 
-pub const Format = union(enum) {
-    text,
-    json,
-    custom: @TypeOf(formatFn),
-};
-
-pub fn formatFn(
+pub const FormatFn = fn (
     writer: anytype,
     comptime message_level: std.log.Level,
     comptime scope: @Type(.enum_literal),
     comptime fmt: []const u8,
     args: anytype,
     comptime opts: Options,
-) anyerror!void {
-    return switch (opts.format) {
-        .text => text(writer, message_level, scope, fmt, args, opts),
-        .json => json(writer, message_level, scope, fmt, args, opts),
-        .custom => |func| func(writer, message_level, scope, fmt, args, opts),
-    };
-}
+) anyerror!void;
+
+pub const Format = union(enum) {
+    text,
+    json,
+    custom: FormatFn,
+
+    pub fn write(
+        self: Format,
+        writer: anytype,
+        comptime message_level: std.log.Level,
+        comptime scope: @Type(.enum_literal),
+        comptime fmt: []const u8,
+        args: anytype,
+        comptime opts: Options,
+    ) anyerror!void {
+        return switch (self) {
+            .text => text(writer, message_level, scope, fmt, args, opts),
+            .json => json(writer, message_level, scope, fmt, args, opts),
+            .custom => |func| func(writer, message_level, scope, fmt, args, opts),
+        };
+    }
+};
 
 fn text(
     writer: anytype,
