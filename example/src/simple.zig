@@ -1,3 +1,7 @@
+/// Simple example showing how to use `Logex` in a application.
+///
+/// Logex is designed to be a drop-in extension for `std.log`,
+/// this means it's easy to add to an existing project (and remove it if you want)
 const std = @import("std");
 const logex = @import("logex");
 
