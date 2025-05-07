@@ -48,4 +48,6 @@ pub fn build(b: *std.Build) void {
 
 const examples = [_][]const u8{
     "src/simple.zig",
+    "src/custom_format.zig",
+    "src/custom_appender.zig",
 };
