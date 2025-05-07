@@ -75,6 +75,8 @@ const MyCustomAppender = struct {
 };
 ```
 
+See a more complete example [here](example/src/custom_appender.zig).
+
 ## Formatting
 
 `logex` supports multiple output formats:
@@ -82,6 +84,8 @@ const MyCustomAppender = struct {
 - **Text**: Default format compatible with `std.log`
 - **JSON**: Structured logging in JSON format
 - **Custom**: Implement your own formatting function
+
+See a complete example using a custom formatter [here](example/src/custom_format.zig).
 
 ## Examples
 
