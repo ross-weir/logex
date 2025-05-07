@@ -13,6 +13,8 @@ pub const std_options: std.Options = .{
 };
 
 pub fn main() !void {
+    std.debug.print("Running 'simple' example\n", .{});
+
     try Logger.init(.{
         ConsoleAppender.init,
         try FileAppender.init("app.log"),
