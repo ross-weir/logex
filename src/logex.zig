@@ -21,7 +21,7 @@ fn LoggerOptions(comptime appenders: anytype) type {
             .layout = .auto,
             .fields = &new_fields,
             .decls = &[_]std.builtin.Type.Declaration{},
-            .is_tuple = false,
+            .is_tuple = true,
         },
     });
 }
