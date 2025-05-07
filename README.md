@@ -1,5 +1,7 @@
 # Logex
 
+[![CI](https://github.com/ross-weir/logex/actions/workflows/ci.yaml/badge.svg)](https://github.com/ross-weir/logex/actions/workflows/ci.yaml)
+
 A minimal, extensible logging library for Zig that enhances `std.log` with additional features while maintaining a simple, drop-in interface.
 
 ## Features
@@ -46,7 +48,7 @@ pub fn main() !void {
 }
 ```
 
-Removing `Logex` is as simple as removing `Logger.logFn` and deleting initialzation. 
+Removing `Logex` is as simple as removing `Logger.logFn` and deleting initialzation.
 
 ## Appenders
 
