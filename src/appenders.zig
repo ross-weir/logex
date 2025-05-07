@@ -97,6 +97,7 @@ pub fn File(
         }
 
         /// Creates the file appender using the provided File.
+        /// The file will be appended to if it already contains content.
         pub fn initFromFile(file: std.fs.File) !Self {
             try file.seekTo(try file.getEndPos());
             return .{ .inner = .init(file.writer()) };

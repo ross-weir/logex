@@ -59,15 +59,15 @@ pub const InitializeError = error{AlreadyInitialized};
 /// ## Example
 ///
 /// ```zig
-/// // Because the types are provided as file, console in this tuple the instances
-/// // should also be provided in this order
+/// // Because the types are provided in order: file, console in this tuple the instances
+/// // should also be provided in this order when we call Logger.init()
 /// const Logger = Logex(.{FileAppender(), ConsoleAppender()});
 ///
 /// // ..snip
-/// const file_appender = .init();
+/// const file_appender = .init("app.log");
 /// const console_appender = .init;
 ///
-/// // note the we use the same order here,
+/// // note the we must use the same order here,
 /// // if we provided `console_appender` first this would be incorrect.
 /// Logger.init(file_appender, console_appender);
 /// ```
@@ -82,7 +82,7 @@ pub fn Logex(comptime appenders: anytype) type {
         /// - If logex is currently being initialized by a different thread then this function will block
         /// until initialization is complete at which time it will return an `InitializeError` error.
         ///
-        /// Options is a tuple containing appender instances in the same order that the types
+        /// Options argument is a tuple containing appender instances in the same order that the types
         /// were provided to the `Logex` type constructor.
         pub fn init(opts: Options) InitializeError!void {
             if (state.cmpxchgStrong(.uninitialized, .initializing, .acquire, .acquire)) |current| {
