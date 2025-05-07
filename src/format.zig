@@ -1,6 +1,7 @@
 const std = @import("std");
 const Options = @import("root.zig").Options;
 
+/// Function type that is called to format log messages.
 pub const FormatFn = fn (
     writer: anytype,
     comptime message_level: std.log.Level,
@@ -10,9 +11,13 @@ pub const FormatFn = fn (
     comptime opts: Options,
 ) anyerror!void;
 
+/// Formatting to be used when writting logs.
 pub const Format = union(enum) {
+    /// Text based formatting, logs are formatted the same as `std.log` by default.
     text,
+    /// Logs are outtputed as JSON.
     json,
+    /// Logs are formatted by a custom formatting function provided by the user.
     custom: FormatFn,
 
     pub fn write(
