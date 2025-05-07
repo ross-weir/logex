@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/ross-weir/logex/actions/workflows/ci.yaml/badge.svg)](https://github.com/ross-weir/logex/actions/workflows/ci.yaml)
 
-A minimal, extensible logging library for Zig that enhances `std.log` with additional features while maintaining a simple, drop-in interface.
+`logex` (log extensions) is a minimal, extensible logging library for Zig that enhances `std.log` with additional features while maintaining a simple, drop-in interface.
 
 ## Features
 
@@ -12,7 +12,7 @@ A minimal, extensible logging library for Zig that enhances `std.log` with addit
   - Text (compatible with `std.log` default format)
   - JSON
   - Custom (implement your own formatting function)
-- **Minimal Impact**: `Logex` aims to add minimal overhead by remaining comptime as much as possible like the default `std.log` implementation.
+- **Minimal Impact**: `logex` aims to add minimal overhead by remaining comptime as much as possible like the default `std.log` implementation.
 
 ## Quick Start
 
@@ -48,11 +48,11 @@ pub fn main() !void {
 }
 ```
 
-Removing `Logex` is as simple as removing `Logger.logFn` and deleting initialzation.
+Removing `logex` is as simple as removing `Logger.logFn` and deleting initialzation.
 
 ## Appenders
 
-Logex comes with two built-in appenders:
+`logex` comes with two built-in appenders:
 
 - **Console Appender**: Logs to `stderr`, works the same as the default `logFn` from `std.log`
 - **File Appender**: Logs to file
@@ -77,7 +77,7 @@ const MyCustomAppender = struct {
 
 ## Formatting
 
-Logex supports multiple output formats:
+`logex` supports multiple output formats:
 
 - **Text**: Default format compatible with `std.log`
 - **JSON**: Structured logging in JSON format
