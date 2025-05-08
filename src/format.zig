@@ -1,13 +1,15 @@
 const std = @import("std");
-const Options = @import("root.zig").Options;
-const Record = @import("Record.zig");
+const root = @import("root.zig");
+
+const Options = root.Options;
+const Record = root.Record;
+const Context = root.Context;
 
 /// Function type that is called to format log messages.
 pub const FormatFn = fn (
     writer: anytype,
     comptime record: *const Record,
-    message: []const u8,
-    comptime opts: Options,
+    context: *const Context,
 ) anyerror!void;
 
 /// Formatting to be used when writting logs.
@@ -23,13 +25,12 @@ pub const Format = union(enum) {
         self: Format,
         writer: anytype,
         comptime record: *const Record,
-        message: []const u8,
-        comptime opts: Options,
+        context: *const Context,
     ) anyerror!void {
         return switch (self) {
-            .text => text(writer, record, message, opts),
-            .json => json(writer, record, message, opts),
-            .custom => |func| func(writer, record, message, opts),
+            .text => text(writer, record, context),
+            .json => json(writer, record, context),
+            .custom => |func| func(writer, record, context),
         };
     }
 };
@@ -37,19 +38,17 @@ pub const Format = union(enum) {
 fn text(
     writer: anytype,
     comptime record: *const Record,
-    message: []const u8,
-    comptime _: Options,
+    context: *const Context,
 ) @TypeOf(writer).Error!void {
     const level_txt = comptime record.level.asText();
     const prefix2 = if (record.scope == std.log.default_log_scope) ": " else "(" ++ @tagName(record.scope) ++ "): ";
-    try writer.print(level_txt ++ prefix2 ++ "{s}\n", .{message});
+    try writer.print(level_txt ++ prefix2 ++ "{s}\n", .{context.message});
 }
 
 fn json(
     writer: anytype,
     comptime record: *const Record,
-    message: []const u8,
-    comptime _: Options,
+    context: *const Context,
 ) @TypeOf(writer).Error!void {
     // try avoid allocations for now
     const level = comptime record.level.asText();
@@ -57,7 +56,7 @@ fn json(
         .{
             .level = level,
             .scope = @tagName(record.scope),
-            .message = message,
+            .message = context.message,
         },
         .{},
         writer,

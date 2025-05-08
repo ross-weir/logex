@@ -1,6 +1,7 @@
+const std = @import("std");
+
 pub const Logex = @import("logex.zig").Logex;
 pub const InitializeError = @import("logex.zig").InitializeError;
-pub const Record = @import("Record.zig");
 pub const format = @import("format.zig");
 pub const appenders = @import("appenders.zig");
 
@@ -10,8 +11,13 @@ pub const Options = struct {
     format: format.Format = .text,
 };
 
-const std = @import("std");
+pub const Record = struct {
+    level: std.log.Level,
+    scope: @Type(.enum_literal),
+};
 
 pub const Context = struct {
-    datetime: []const u8,
+    message: []const u8,
+    datetime: ?[]const u8 = null,
+    // thread id
 };

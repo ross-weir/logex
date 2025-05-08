@@ -6,10 +6,9 @@ const logex = @import("logex");
 pub fn formatFn(
     writer: anytype,
     comptime _: *const logex.Record,
-    message: []const u8,
-    comptime _: logex.Options,
+    context: *const logex.Context,
 ) @TypeOf(writer).Error!void {
-    try writer.print("[custom] {s}\n", .{message});
+    try writer.print("[custom] {s}\n", .{context.message});
 }
 
 const ConsoleAppender = logex.appenders.Console(.debug, .{

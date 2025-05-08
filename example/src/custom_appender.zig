@@ -21,12 +21,12 @@ pub fn CustomAppender(
         pub fn log(
             self: *Self,
             comptime record: *const logex.Record,
-            message: []const u8,
+            context: *const logex.Context,
         ) !void {
             // comptime log level check, no runtime overhead
             if (comptime @intFromEnum(record.level) > @intFromEnum(level)) return;
 
-            try opts.format.write(self.writer, record, message, opts);
+            try opts.format.write(self.writer, record, context);
         }
     };
 }
