@@ -1,13 +1,12 @@
 const std = @import("std");
 const Options = @import("root.zig").Options;
+const Record = @import("Record.zig");
 
 /// Function type that is called to format log messages.
 pub const FormatFn = fn (
     writer: anytype,
-    comptime message_level: std.log.Level,
-    comptime scope: @Type(.enum_literal),
-    comptime fmt: []const u8,
-    args: anytype,
+    comptime record: *const Record,
+    message: []const u8,
     comptime opts: Options,
 ) anyerror!void;
 
@@ -23,49 +22,41 @@ pub const Format = union(enum) {
     pub fn write(
         self: Format,
         writer: anytype,
-        comptime message_level: std.log.Level,
-        comptime scope: @Type(.enum_literal),
-        comptime fmt: []const u8,
-        args: anytype,
+        comptime record: *const Record,
+        message: []const u8,
         comptime opts: Options,
     ) anyerror!void {
         return switch (self) {
-            .text => text(writer, message_level, scope, fmt, args, opts),
-            .json => json(writer, message_level, scope, fmt, args, opts),
-            .custom => |func| func(writer, message_level, scope, fmt, args, opts),
+            .text => text(writer, record, message, opts),
+            .json => json(writer, record, message, opts),
+            .custom => |func| func(writer, record, message, opts),
         };
     }
 };
 
 fn text(
     writer: anytype,
-    comptime message_level: std.log.Level,
-    comptime scope: @Type(.enum_literal),
-    comptime fmt: []const u8,
-    args: anytype,
+    comptime record: *const Record,
+    message: []const u8,
     comptime _: Options,
 ) @TypeOf(writer).Error!void {
-    const level_txt = comptime message_level.asText();
-    const prefix2 = if (scope == std.log.default_log_scope) ": " else "(" ++ @tagName(scope) ++ "): ";
-    try writer.print(level_txt ++ prefix2 ++ fmt ++ "\n", args);
+    const level_txt = comptime record.level.asText();
+    const prefix2 = if (record.scope == std.log.default_log_scope) ": " else "(" ++ @tagName(record.scope) ++ "): ";
+    try writer.print(level_txt ++ prefix2 ++ "{s}\n", .{message});
 }
 
 fn json(
     writer: anytype,
-    comptime message_level: std.log.Level,
-    comptime scope: @Type(.enum_literal),
-    comptime fmt: []const u8,
-    args: anytype,
+    comptime record: *const Record,
+    message: []const u8,
     comptime _: Options,
 ) @TypeOf(writer).Error!void {
     // try avoid allocations for now
-    var buf: [2048]u8 = undefined;
-    const message = try std.fmt.bufPrint(&buf, fmt, args);
-    const level = comptime message_level.asText();
+    const level = comptime record.level.asText();
     try std.json.stringify(
         .{
             .level = level,
-            .scope = @tagName(scope),
+            .scope = @tagName(record.scope),
             .message = message,
         },
         .{},
