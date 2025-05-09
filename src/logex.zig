@@ -1,4 +1,8 @@
 const std = @import("std");
+const root = @import("root.zig");
+
+const Record = root.Record;
+const Context = root.Context;
 
 fn LoggerOptions(comptime appenders: anytype) type {
     const fields = std.meta.fields(@TypeOf(appenders));
@@ -110,10 +114,23 @@ pub fn Logex(comptime appenders: anytype) type {
         ) void {
             if (state.load(.seq_cst) != .initialized) return;
 
+            const record: Record = .{
+                .level = level,
+                .scope = scope,
+            };
+            var buf: [2048]u8 = undefined;
+            // panic for now, see if we can get away with stack alloc buffer
+            const message = std.fmt.bufPrint(&buf, fmt, args) catch @panic("formatted buffer too small");
+            const context: Context = .{
+                .message = message,
+            };
+
+            // get current time, etc
+
             inline for (std.meta.fields(@TypeOf(options))) |field| {
                 if (@field(options, field.name)) |*appender| {
                     // TODO: allow users to provide a error handler?
-                    appender.log(level, scope, fmt, args) catch {};
+                    appender.log(&record, &context) catch {};
                 }
             }
         }

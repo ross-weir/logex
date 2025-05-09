@@ -5,13 +5,10 @@ const logex = @import("logex");
 // prefixes the log line with `[custom]` for demo purposes
 pub fn formatFn(
     writer: anytype,
-    comptime _: std.log.Level,
-    comptime _: @Type(.enum_literal),
-    comptime format: []const u8,
-    args: anytype,
-    comptime _: logex.Options,
+    comptime _: *const logex.Record,
+    context: *const logex.Context,
 ) @TypeOf(writer).Error!void {
-    try writer.print("[custom] " ++ format ++ "\n", args);
+    try writer.print("[custom] {s}\n", .{context.message});
 }
 
 const ConsoleAppender = logex.appenders.Console(.debug, .{

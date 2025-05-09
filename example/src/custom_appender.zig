@@ -20,15 +20,13 @@ pub fn CustomAppender(
 
         pub fn log(
             self: *Self,
-            comptime message_level: std.log.Level,
-            comptime scope: @Type(.enum_literal),
-            comptime format: []const u8,
-            args: anytype,
+            comptime record: *const logex.Record,
+            context: *const logex.Context,
         ) !void {
             // comptime log level check, no runtime overhead
-            if (comptime @intFromEnum(message_level) > @intFromEnum(level)) return;
+            if (comptime @intFromEnum(record.level) > @intFromEnum(level)) return;
 
-            try opts.format.write(self.writer, message_level, scope, format, args, opts);
+            try opts.format.write(self.writer, record, context);
         }
     };
 }

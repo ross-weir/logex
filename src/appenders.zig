@@ -1,5 +1,9 @@
 const std = @import("std");
-const Options = @import("root.zig").Options;
+const root = @import("root.zig");
+
+const Options = root.Options;
+const Record = root.Record;
+const Context = root.Context;
 
 /// A generic writer based appender.
 /// Writes logs to the provided `Writer` type.
@@ -21,16 +25,14 @@ pub fn Writer(
 
         pub fn log(
             self: *Self,
-            comptime message_level: std.log.Level,
-            comptime scope: @Type(.enum_literal),
-            comptime format: []const u8,
-            args: anytype,
+            comptime record: *const Record,
+            context: *const Context,
         ) !void {
-            if (comptime @intFromEnum(message_level) > @intFromEnum(level)) return;
+            if (comptime @intFromEnum(record.level) > @intFromEnum(level)) return;
 
             self.mutex.lock();
             defer self.mutex.unlock();
-            try opts.format.write(self.writer, message_level, scope, format, args, opts);
+            try opts.format.write(self.writer, record, context);
         }
     };
 }
@@ -49,12 +51,10 @@ pub fn Console(
 
         pub fn log(
             _: *Self,
-            comptime message_level: std.log.Level,
-            comptime scope: @Type(.enum_literal),
-            comptime format: []const u8,
-            args: anytype,
+            comptime record: *const Record,
+            context: *const Context,
         ) !void {
-            if (comptime @intFromEnum(message_level) > @intFromEnum(level)) return;
+            if (comptime @intFromEnum(record.level) > @intFromEnum(level)) return;
 
             const stderr = std.io.getStdErr().writer();
             var bw = std.io.bufferedWriter(stderr);
@@ -66,7 +66,7 @@ pub fn Console(
             std.debug.lockStdErr();
             defer std.debug.unlockStdErr();
             nosuspend {
-                try opts.format.write(writer, message_level, scope, format, args, opts);
+                try opts.format.write(writer, record, context);
                 try bw.flush();
             }
         }
@@ -105,12 +105,10 @@ pub fn File(
 
         pub inline fn log(
             self: *Self,
-            comptime message_level: std.log.Level,
-            comptime scope: @Type(.enum_literal),
-            comptime format: []const u8,
-            args: anytype,
+            comptime record: *const Record,
+            context: *const Context,
         ) !void {
-            return self.inner.log(message_level, scope, format, args);
+            return self.inner.log(record, context);
         }
     };
 }
