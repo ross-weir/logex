@@ -52,12 +52,14 @@ const std = @import("std");
 const logex = @import("logex");
 
 // Create appender types
+// Log to the console at debug and above levels, using default text formatting
 const ConsoleAppender = logex.appenders.Console(.debug, .{});
+// Log to file at info and above levels, using JSON formatting
 const FileAppender = logex.appenders.File(.info, .{
     .format = .json,
 });
 
-// Create logger type with both appenders
+// Create logger type with both appender types
 const Logger = logex.Logex(.{ ConsoleAppender, FileAppender });
 
 // Use in std_options
@@ -66,7 +68,7 @@ pub const std_options: std.Options = .{
 };
 
 pub fn main() !void {
-    // Initialize appenders
+    // Initialize appender instances
     const console_appender = ConsoleAppender.init;
     const file_appender = try FileAppender.init("app.log");
 
@@ -74,7 +76,9 @@ pub fn main() !void {
     try Logger.init(.{ console_appender, file_appender });
 
     // Use std.log as usual
+    // Debug message will only be displayed on console
     std.log.debug("Debug message", .{});
+    // Info message will be logged to file and console
     std.log.info("Info message", .{});
 }
 ```
