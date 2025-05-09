@@ -62,13 +62,13 @@ Removing `logex` is as simple as removing `Logger.logFn` and deleting initialzat
 You can create custom appenders by implementing the `Appender` interface:
 
 ```zig
+const logex = @import("logex");
+
 const MyCustomAppender = struct {
     pub fn log(
         self: *@This(),
-        comptime level: std.log.Level,
-        comptime scope: @TypeOf(.enum_literal),
-        comptime format: []const u8,
-        args: anytype,
+        comptime record: *const logex.Record,
+        context: *const logex.Context,
     ) !void {
         // Implement your logging logic
     }
