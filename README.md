@@ -14,6 +14,37 @@
   - Custom (implement your own formatting function)
 - **Minimal Impact**: `logex` aims to add minimal overhead by remaining comptime as much as possible like the default `std.log` implementation.
 
+## Install
+
+Add `logex` as a dependency to your zig project like so:
+
+```bash
+zig fetch --save git+https://github.com/ross-weir/logex.git
+```
+
+And configure it in your `build.zig`:
+
+```zig
+// .. snip
+
+const logex = b.dependency("logex", .{
+    .target = target,
+    .optimize = optimize,
+});
+
+const exe_mod = b.createModule(.{
+    .root_source_file = b.path("src/main.zig"),
+    .target = target,
+    .optimize = optimize,
+    .imports = &.{
+        .{
+            .name = "logex",
+            .module = logex.module("logex"),
+        },
+    },
+});
+```
+
 ## Quick Start
 
 ```zig
