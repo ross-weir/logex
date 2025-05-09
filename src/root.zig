@@ -30,10 +30,9 @@ pub const Record = struct {
 pub const Context = struct {
     /// The formatted log message
     message: []const u8,
-    /// The datetime of the log
-    ///
-    /// Will be available if logging was configured to include
-    /// a timestamp, otherwise it will be null.
-    datetime: ?[]const u8 = null,
-    // thread id
+
+    // This struct currently only contains one field but in the future
+    // will likely include datetime/thread ids/etc
+    // Starting with a struct means we don't introduce breaking changes when the
+    // extra fields get added.
 };
