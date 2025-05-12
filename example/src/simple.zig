@@ -18,7 +18,10 @@ const FileAppender = logex.appenders.File(.info, .{
 /// Create our Logger type using console & file appender types.
 /// Returns the `logFn` we use in std_options as well as an `init`
 /// function which initializes the logger.
-const Logger = logex.Logex(.{ ConsoleAppender, FileAppender });
+const Logger = logex.Logex(
+    .{ .show_datetime = .iso_8601_utc },
+    .{ ConsoleAppender, FileAppender },
+);
 
 pub const std_options: std.Options = .{
     // Use our loggers `logFn` which provides console and file logging.

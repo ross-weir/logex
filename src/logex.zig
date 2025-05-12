@@ -4,7 +4,7 @@ const root = @import("root.zig");
 const Record = root.Record;
 const Context = root.Context;
 
-fn LoggerOptions(comptime appenders: anytype) type {
+fn AppenderInstances(comptime appenders: anytype) type {
     const fields = std.meta.fields(@TypeOf(appenders));
     var new_fields: [fields.len]std.builtin.Type.StructField = undefined;
 
@@ -39,6 +39,15 @@ var state: std.atomic.Value(State) = .init(.uninitialized);
 
 /// Error that occurs during logex initialization
 pub const InitializeError = error{AlreadyInitialized};
+
+pub const DateTimeOptions = union(enum) {
+    iso_8601_utc,
+    custom: fn (millitimestamp: i64) []const u8,
+};
+
+pub const LogexOptions = struct {
+    show_datetime: ?DateTimeOptions = null,
+};
 
 /// Creates the Logex logger type.
 /// `appenders` should be a tuple of appender types that will be used for logging.
@@ -75,10 +84,13 @@ pub const InitializeError = error{AlreadyInitialized};
 /// // if we provided `console_appender` first this would be incorrect.
 /// Logger.init(file_appender, console_appender);
 /// ```
-pub fn Logex(comptime appenders: anytype) type {
+pub fn Logex(
+    comptime opts: LogexOptions,
+    comptime appender_types: anytype,
+) type {
     return struct {
-        pub const Options = LoggerOptions(appenders);
-        var options: Options = undefined;
+        pub const Appenders = AppenderInstances(appender_types);
+        var appenders: Appenders = undefined;
 
         /// Initializes logex in a thread-safe manner.
         ///
@@ -88,7 +100,7 @@ pub fn Logex(comptime appenders: anytype) type {
         ///
         /// Options argument is a tuple containing appender instances in the same order that the types
         /// were provided to the `Logex` type constructor.
-        pub fn init(opts: Options) InitializeError!void {
+        pub fn init(appender_instances: Appenders) InitializeError!void {
             if (state.cmpxchgStrong(.uninitialized, .initializing, .acquire, .acquire)) |current| {
                 switch (current) {
                     .initialized => return InitializeError.AlreadyInitialized,
@@ -101,7 +113,7 @@ pub fn Logex(comptime appenders: anytype) type {
                     .uninitialized => unreachable,
                 }
             } else {
-                options = opts;
+                appenders = appender_instances;
                 state.store(.initialized, .seq_cst);
             }
         }
@@ -121,14 +133,10 @@ pub fn Logex(comptime appenders: anytype) type {
             var buf: [2048]u8 = undefined;
             // panic for now, see if we can get away with stack alloc buffer
             const message = std.fmt.bufPrint(&buf, fmt, args) catch @panic("formatted buffer too small");
-            const context: Context = .{
-                .message = message,
-            };
+            const context: Context = .initFromOptions(message, &opts);
 
-            // get current time, etc
-
-            inline for (std.meta.fields(@TypeOf(options))) |field| {
-                if (@field(options, field.name)) |*appender| {
+            inline for (std.meta.fields(@TypeOf(appenders))) |field| {
+                if (@field(appenders, field.name)) |*appender| {
                     // TODO: allow users to provide a error handler?
                     appender.log(&record, &context) catch {};
                 }

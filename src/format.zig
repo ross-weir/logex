@@ -56,9 +56,10 @@ fn json(
         .{
             .level = level,
             .scope = @tagName(record.scope),
+            .timestamp = context.datetime,
             .message = context.message,
         },
-        .{},
+        .{ .emit_null_optional_fields = false },
         writer,
     );
     try writer.writeByte('\n');
