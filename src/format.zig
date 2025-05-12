@@ -42,7 +42,13 @@ fn text(
 ) @TypeOf(writer).Error!void {
     const level_txt = comptime record.level.asText();
     const prefix2 = if (record.scope == std.log.default_log_scope) ": " else "(" ++ @tagName(record.scope) ++ "): ";
-    try writer.print(level_txt ++ prefix2 ++ "{s}\n", .{context.message});
+    try writer.print(level_txt ++ prefix2, .{});
+
+    if (context.timestamp) |ts| {
+        try writer.print("{s}", .{ts});
+    }
+    try writer.print("{s}", .{context.message});
+    try writer.writeByte('\n');
 }
 
 fn json(
@@ -52,11 +58,12 @@ fn json(
 ) @TypeOf(writer).Error!void {
     // try avoid allocations for now
     const level = comptime record.level.asText();
+    std.debug.print("{s}\n", .{context.timestamp.?});
     try std.json.stringify(
         .{
             .level = level,
             .scope = @tagName(record.scope),
-            .timestamp = context.datetime,
+            .timestamp = context.timestamp,
             .message = context.message,
         },
         .{ .emit_null_optional_fields = false },

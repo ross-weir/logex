@@ -40,13 +40,13 @@ var state: std.atomic.Value(State) = .init(.uninitialized);
 /// Error that occurs during logex initialization
 pub const InitializeError = error{AlreadyInitialized};
 
-pub const DateTimeOptions = union(enum) {
-    iso_8601_utc,
-    custom: fn (millitimestamp: i64) []const u8,
+pub const TimestampOptions = union(enum) {
+    default,
+    custom: *const fn (millitimestamp: i64, buf: []u8) []u8,
 };
 
 pub const LogexOptions = struct {
-    show_datetime: ?DateTimeOptions = null,
+    show_timestamp: ?TimestampOptions = null,
 };
 
 /// Creates the Logex logger type.
@@ -84,13 +84,11 @@ pub const LogexOptions = struct {
 /// // if we provided `console_appender` first this would be incorrect.
 /// Logger.init(file_appender, console_appender);
 /// ```
-pub fn Logex(
-    comptime opts: LogexOptions,
-    comptime appender_types: anytype,
-) type {
+pub fn Logex(comptime appender_types: anytype) type {
     return struct {
         pub const Appenders = AppenderInstances(appender_types);
         var appenders: Appenders = undefined;
+        var options: LogexOptions = undefined;
 
         /// Initializes logex in a thread-safe manner.
         ///
@@ -100,7 +98,7 @@ pub fn Logex(
         ///
         /// Options argument is a tuple containing appender instances in the same order that the types
         /// were provided to the `Logex` type constructor.
-        pub fn init(appender_instances: Appenders) InitializeError!void {
+        pub fn init(opts: LogexOptions, appender_instances: Appenders) InitializeError!void {
             if (state.cmpxchgStrong(.uninitialized, .initializing, .acquire, .acquire)) |current| {
                 switch (current) {
                     .initialized => return InitializeError.AlreadyInitialized,
@@ -114,6 +112,7 @@ pub fn Logex(
                 }
             } else {
                 appenders = appender_instances;
+                options = opts;
                 state.store(.initialized, .seq_cst);
             }
         }
@@ -133,7 +132,7 @@ pub fn Logex(
             var buf: [2048]u8 = undefined;
             // panic for now, see if we can get away with stack alloc buffer
             const message = std.fmt.bufPrint(&buf, fmt, args) catch @panic("formatted buffer too small");
-            const context: Context = .initFromOptions(message, &opts);
+            const context: Context = .initFromOptions(message, &options);
 
             inline for (std.meta.fields(@TypeOf(appenders))) |field| {
                 if (@field(appenders, field.name)) |*appender| {

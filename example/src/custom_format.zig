@@ -15,7 +15,7 @@ const ConsoleAppender = logex.appenders.Console(.debug, .{
     // Configure the console appender to use our custom format function
     .format = .{ .custom = formatFn },
 });
-const Logger = logex.Logex(.{}, .{ConsoleAppender});
+const Logger = logex.Logex(.{ConsoleAppender});
 
 pub const std_options: std.Options = .{
     .logFn = Logger.logFn,
@@ -25,7 +25,7 @@ pub fn main() !void {
     std.debug.print("Running 'custom_format' example\n", .{});
 
     // Initialize the logger and console appender
-    try Logger.init(.{.init});
+    try Logger.init(.{}, .{.init});
 
     // Log output will be in our custom format with `[custom]` prepended to the log message.
     std.log.info("Logging some output", .{});

@@ -32,7 +32,7 @@ pub fn CustomAppender(
 }
 
 const MyAppender = CustomAppender(.debug, .{});
-const Logger = logex.Logex(.{}, .{MyAppender});
+const Logger = logex.Logex(.{MyAppender});
 
 pub const std_options: std.Options = .{
     .logFn = Logger.logFn,
@@ -41,7 +41,7 @@ pub const std_options: std.Options = .{
 pub fn main() !void {
     std.debug.print("Running 'custom_appender' example\n", .{});
 
-    try Logger.init(.{.init()});
+    try Logger.init(.{}, .{.init()});
 
     std.log.info("Logging some output", .{});
 }
