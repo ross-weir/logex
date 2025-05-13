@@ -26,8 +26,14 @@ fn AppenderInstances(comptime appenders: anytype) type {
     });
 }
 
+/// Configuration options for displaying timestamps in log messages.
 pub const TimestampOptions = union(enum) {
+    /// Default timestamp format, resembles RFC3339 UTC formatting
+    /// but no strict gauruntee of conformance.
+    ///
+    /// A sensible default for displaying timestamps.
     default,
+    /// Provide a custom timestamp formatting function.
     custom: *const fn (millitimestamp: i64, buf: []u8) anyerror![]u8,
 
     pub fn write(self: TimestampOptions, buf: []u8, millitimestamp: i64) ![]u8 {
@@ -69,7 +75,13 @@ pub const TimestampOptions = union(enum) {
     }
 };
 
+/// Main logex runtime configuration.
 pub const LogexOptions = struct {
+    /// Configuration for timestamps in log messages.
+    ///
+    /// If not provided no timestamps will be included
+    /// in logs. If it is included the timestamp will
+    /// be formatted according to the specified option.
     show_timestamp: ?TimestampOptions = null,
 };
 

@@ -5,6 +5,7 @@ const format = @import("format.zig");
 const Record = root.Record;
 const Context = root.Context;
 
+/// Configuration options that apply to `Appender`s.
 pub const Options = struct {
     /// The format to use when writting log lines.
     format: format.Format = .text,
