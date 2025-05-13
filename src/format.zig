@@ -47,6 +47,7 @@ fn text(
     if (context.timestamp) |ts| {
         try writer.print("{s}", .{ts});
     }
+
     try writer.print("{s}", .{context.message});
     try writer.writeByte('\n');
 }
@@ -56,9 +57,7 @@ fn json(
     comptime record: *const Record,
     context: *const Context,
 ) @TypeOf(writer).Error!void {
-    // try avoid allocations for now
     const level = comptime record.level.asText();
-    std.debug.print("{s}\n", .{context.timestamp.?});
     try std.json.stringify(
         .{
             .level = level,
