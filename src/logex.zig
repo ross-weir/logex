@@ -29,7 +29,7 @@ fn AppenderInstances(comptime appenders: anytype) type {
 /// Configuration options for displaying timestamps in log messages.
 pub const TimestampOptions = union(enum) {
     /// Default timestamp format, resembles RFC3339 UTC formatting
-    /// but no strict gauruntee of conformance.
+    /// but no strict guarantee of conformance.
     ///
     /// A sensible default for displaying timestamps.
     default,
