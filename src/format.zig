@@ -40,16 +40,14 @@ fn text(
     comptime record: *const Record,
     context: *const Context,
 ) @TypeOf(writer).Error!void {
-    const level_txt = comptime record.level.asText();
-    const prefix2 = if (record.scope == std.log.default_log_scope) ": " else "(" ++ @tagName(record.scope) ++ "): ";
-    try writer.print(level_txt ++ prefix2, .{});
-
     if (context.timestamp) |ts| {
-        try writer.print("{s}", .{ts});
+        try writer.print("{s} ", .{ts});
     }
 
-    try writer.print("{s}", .{context.message});
-    try writer.writeByte('\n');
+    const level_txt = comptime record.level.asText();
+    const prefix2 = if (record.scope == std.log.default_log_scope) ":" else "(" ++ @tagName(record.scope) ++ "):";
+
+    try writer.print(level_txt ++ prefix2 ++ " {s}\n", .{context.message});
 }
 
 fn json(

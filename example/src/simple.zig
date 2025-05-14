@@ -25,6 +25,8 @@ pub const std_options: std.Options = .{
     .logFn = Logger.logFn,
 };
 
+const scoped = std.log.scoped(.custom);
+
 pub fn main() !void {
     std.debug.print("Running 'simple' example\n", .{});
 
@@ -49,4 +51,7 @@ pub fn main() !void {
     // `app.log` will contain the messages in JSON format.
     std.log.info("higher log output to file", .{});
     std.log.info("second info log", .{});
+
+    // Also works fine with scoped loggers
+    scoped.info("scoped logger also works", .{});
 }
