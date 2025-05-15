@@ -25,7 +25,7 @@ pub fn main() !void {
     std.debug.print("Running 'custom_format' example\n", .{});
 
     // Initialize the logger and console appender
-    try Logger.init(.{.init});
+    try Logger.init(.{}, .{.init});
 
     // Log output will be in our custom format with `[custom]` prepended to the log message.
     std.log.info("Logging some output", .{});

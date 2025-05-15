@@ -5,7 +5,7 @@ const logex = @import("logex");
 // Logs to `stdout` as opposed to the logex provided console logger that uses `stderr`.
 pub fn CustomAppender(
     comptime level: std.log.Level,
-    comptime opts: logex.Options,
+    comptime opts: logex.appenders.Options,
 ) type {
     return struct {
         const Self = @This();
@@ -41,7 +41,7 @@ pub const std_options: std.Options = .{
 pub fn main() !void {
     std.debug.print("Running 'custom_appender' example\n", .{});
 
-    try Logger.init(.{.init()});
+    try Logger.init(.{}, .{.init()});
 
     std.log.info("Logging some output", .{});
 }

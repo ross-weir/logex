@@ -1,38 +1,12 @@
 const std = @import("std");
 
-pub const Logex = @import("logex.zig").Logex;
-pub const InitializeError = @import("logex.zig").InitializeError;
+const logex = @import("logex.zig");
+pub const Logex = logex.Logex;
+pub const LogexOptions = logex.LogexOptions;
+pub const TimestampOptions = logex.TimestampOptions;
+pub const Context = logex.Context;
+pub const Record = logex.Record;
+pub const InitializeError = logex.InitializeError;
+
 pub const format = @import("format.zig");
 pub const appenders = @import("appenders.zig");
-
-/// General Logex & Appender options.
-pub const Options = struct {
-    /// The format to use when writting log lines.
-    format: format.Format = .text,
-};
-
-/// A record structure containing information about a logging event.
-/// This type contains fields that are comptime known only.
-///
-/// This struct is separate to `Context` so it can remain `comptime`
-/// which is important for comptime log level checking.
-pub const Record = struct {
-    level: std.log.Level,
-    scope: @Type(.enum_literal),
-};
-
-/// Provides context that is needed to write the log line.
-/// The extra context could be added depending on option
-/// configuration and will be determined at runtime.
-///
-/// This struct is separate to `Record` because it contains
-/// runtime fields and thus can't be used at comptime.
-pub const Context = struct {
-    /// The formatted log message
-    message: []const u8,
-
-    // This struct currently only contains one field but in the future
-    // will likely include datetime/thread ids/etc
-    // Starting with a struct means we don't introduce breaking changes when the
-    // extra fields get added.
-};

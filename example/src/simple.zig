@@ -25,6 +25,8 @@ pub const std_options: std.Options = .{
     .logFn = Logger.logFn,
 };
 
+const scoped = std.log.scoped(.custom);
+
 pub fn main() !void {
     std.debug.print("Running 'simple' example\n", .{});
 
@@ -37,7 +39,10 @@ pub fn main() !void {
     const file_appender = try FileAppender.init("app.log");
 
     // Initialize our logger using the appender instances
-    try Logger.init(.{ console_appender, file_appender });
+    try Logger.init(
+        .{ .show_timestamp = .default },
+        .{ console_appender, file_appender },
+    );
 
     // `debug` log, only logged to console - file logger is configured for `info`
     std.log.debug("hello world!", .{});
@@ -46,4 +51,7 @@ pub fn main() !void {
     // `app.log` will contain the messages in JSON format.
     std.log.info("higher log output to file", .{});
     std.log.info("second info log", .{});
+
+    // Also works fine with scoped loggers
+    scoped.info("scoped logger also works", .{});
 }
