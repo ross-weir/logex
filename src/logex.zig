@@ -237,7 +237,8 @@ pub fn Logex(comptime appender_types: anytype) type {
             if (options.show_thread) |id| {
                 context.thread = switch (id) {
                     .id => .{ .id = std.Thread.getCurrentId() },
-                    .name => @panic("unimplemented"), // need to get the current thread or implement ourselves
+                    // TODO: `std` doesn't appear to have a good way to get this at the moment
+                    .name => @panic("unimplemented"),
                 };
             }
 
