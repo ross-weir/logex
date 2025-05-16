@@ -73,7 +73,7 @@ pub fn main() !void {
     const file_appender = try FileAppender.init("app.log");
 
     // Initialize logger
-    try Logger.init(.{ console_appender, file_appender });
+    try Logger.init(.{}, .{ console_appender, file_appender });
 
     // Use std.log as usual
     // Debug message will only be displayed on console

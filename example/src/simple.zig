@@ -40,7 +40,7 @@ pub fn main() !void {
 
     // Initialize our logger using the appender instances
     try Logger.init(
-        .{ .show_timestamp = .default },
+        .{},
         .{ console_appender, file_appender },
     );
 

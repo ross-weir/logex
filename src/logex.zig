@@ -83,6 +83,14 @@ pub const LogexOptions = struct {
     /// in logs. If it is included the timestamp will
     /// be formatted according to the specified option.
     show_timestamp: ?TimestampOptions = null,
+    /// Display thread ids in log messages.
+    ///
+    /// If not provided no thread ids will be included
+    /// otherwise the thread will be displayed according
+    /// to the selected option.
+    show_thread: ?enum {
+        id,
+    } = null,
 };
 
 /// Provides context that is needed to write the log line.
@@ -100,6 +108,12 @@ pub const Context = struct {
     ///
     /// If showing of timestamps  was not configured then this field will be `null`.
     timestamp: ?[]const u8 = null,
+    /// If `logex` was configured to show threads
+    /// then this field will contain either the thread id
+    /// or the thread name (if one exists).
+    ///
+    /// If displaying threads was not configured then this will be `null`.
+    thread: ?[]const u8 = null,
 };
 
 /// A record structure containing information about a logging event.
@@ -210,6 +224,13 @@ pub fn Logex(comptime appender_types: anytype) type {
             if (options.show_timestamp) |ts| {
                 var timestamp: [64]u8 = undefined;
                 context.timestamp = ts.write(&timestamp, std.time.milliTimestamp()) catch return;
+            }
+
+            if (options.show_thread) |id| {
+                var thread: [std.Thread.max_name_len]u8 = undefined;
+                context.thread = switch (id) {
+                    .id => std.fmt.bufPrint(&thread, "{d}", .{std.Thread.getCurrentId()}) catch unreachable,
+                };
             }
 
             inline for (std.meta.fields(@TypeOf(appenders))) |field| {

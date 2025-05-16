@@ -44,6 +44,10 @@ fn text(
         try writer.print("{s} ", .{ts});
     }
 
+    if (context.thread) |th| {
+        try writer.print("tid={s} ", .{th});
+    }
+
     const level_txt = comptime record.level.asText();
     const prefix2 = if (record.scope == std.log.default_log_scope) ":" else "(" ++ @tagName(record.scope) ++ "):";
 
@@ -60,6 +64,7 @@ fn json(
         .{
             .level = level,
             .scope = @tagName(record.scope),
+            .tid = context.thread,
             .timestamp = context.timestamp,
             .message = context.message,
         },
