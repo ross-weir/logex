@@ -90,15 +90,7 @@ pub const LogexOptions = struct {
     /// to the selected option.
     show_thread: ?enum {
         id,
-        // TODO: there doesn't appear to be a method to get the current
-        // thread in std zig which we need to get the name
-        // name. We can implement this ourselves though
     } = null,
-};
-
-const ThreadIdentifier = union(enum) {
-    id: std.Thread.Id,
-    name: ?[std.Thread.max_name_len]u8,
 };
 
 /// Provides context that is needed to write the log line.
@@ -121,7 +113,7 @@ pub const Context = struct {
     /// or the thread name (if one exists).
     ///
     /// If displaying threads was not configured then this will be `null`.
-    thread: ?ThreadIdentifier = null,
+    thread: ?[]const u8 = null,
 };
 
 /// A record structure containing information about a logging event.
@@ -235,10 +227,9 @@ pub fn Logex(comptime appender_types: anytype) type {
             }
 
             if (options.show_thread) |id| {
+                var thread: [std.Thread.max_name_len]u8 = undefined;
                 context.thread = switch (id) {
-                    .id => .{ .id = std.Thread.getCurrentId() },
-                    // TODO: `std` doesn't appear to have a good way to get this at the moment
-                    .name => @panic("unimplemented"),
+                    .id => std.fmt.bufPrint(&thread, "{d}", .{std.Thread.getCurrentId()}) catch unreachable,
                 };
             }
 
