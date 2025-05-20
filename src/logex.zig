@@ -1,4 +1,7 @@
 const std = @import("std");
+const EnvFilter = @import("filter.zig").EnvFilter;
+
+const Allocator = std.mem.Allocator;
 
 fn AppenderInstances(comptime appenders: anytype) type {
     const fields = std.meta.fields(@TypeOf(appenders));
@@ -77,6 +80,7 @@ pub const TimestampOptions = union(enum) {
 
 /// Main logex runtime configuration.
 pub const LogexOptions = struct {
+    env_filter: bool = false,
     /// Configuration for timestamps in log messages.
     ///
     /// If not provided no timestamps will be included
@@ -169,13 +173,14 @@ pub const InitializeError = error{AlreadyInitialized};
 ///
 /// // note the we must use the same order here,
 /// // if we provided `console_appender` first this would be incorrect.
-/// Logger.init(file_appender, console_appender);
+/// Logger.init(.{}, .{file_appender, console_appender});
 /// ```
 pub fn Logex(comptime appender_types: anytype) type {
     return struct {
         pub const Appenders = AppenderInstances(appender_types);
         var appenders: Appenders = undefined;
         var options: LogexOptions = undefined;
+        var filter: ?EnvFilter = null;
 
         /// Initializes logex in a thread-safe manner.
         ///
@@ -185,7 +190,7 @@ pub fn Logex(comptime appender_types: anytype) type {
         ///
         /// Options argument is a tuple containing appender instances in the same order that the types
         /// were provided to the `Logex` type constructor.
-        pub fn init(opts: LogexOptions, appender_instances: Appenders) InitializeError!void {
+        pub fn init(allocator: Allocator, opts: LogexOptions, appender_instances: Appenders) InitializeError!void {
             if (state.cmpxchgStrong(.uninitialized, .initializing, .acquire, .acquire)) |current| {
                 switch (current) {
                     .initialized => return InitializeError.AlreadyInitialized,
@@ -200,6 +205,9 @@ pub fn Logex(comptime appender_types: anytype) type {
             } else {
                 appenders = appender_instances;
                 options = opts;
+
+                if (opts.env_filter) filter = .init(allocator);
+
                 state.store(.initialized, .seq_cst);
             }
         }
@@ -211,6 +219,7 @@ pub fn Logex(comptime appender_types: anytype) type {
             args: anytype,
         ) void {
             if (state.load(.seq_cst) != .initialized) return;
+            if (filter != null and !filter.?.should_log()) return;
 
             const record: Record = .{
                 .level = level,
