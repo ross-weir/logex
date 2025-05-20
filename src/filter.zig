@@ -2,6 +2,10 @@ const std = @import("std");
 
 const Allocator = std.mem.Allocator;
 
+const Filter = struct {
+    global: ?std.log.Level,
+};
+
 pub const EnvFilter = struct {
     const Self = @This();
     const default_env = "ZIG_LOG";
@@ -17,6 +21,7 @@ pub const EnvFilter = struct {
     }
 
     pub fn initSlice(allocator: Allocator, slice: []const u8) !Self {
+        // parse the slice into directives
         _ = allocator;
         _ = slice;
         return .{};

@@ -206,7 +206,9 @@ pub fn Logex(comptime appender_types: anytype) type {
                 appenders = appender_instances;
                 options = opts;
 
-                if (opts.env_filter) filter = .init(allocator);
+                if (opts.env_filter) {
+                    filter = .init(allocator) catch {}; // user provided error handler?
+                }
 
                 state.store(.initialized, .seq_cst);
             }
