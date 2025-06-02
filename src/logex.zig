@@ -1,5 +1,5 @@
 const std = @import("std");
-const EnvFilter = @import("filter.zig").EnvFilter;
+const Filter = @import("filter.zig").Filter;
 
 const Allocator = std.mem.Allocator;
 
@@ -80,7 +80,11 @@ pub const TimestampOptions = union(enum) {
 
 /// Main logex runtime configuration.
 pub const LogexOptions = struct {
-    env_filter: bool = false,
+    /// A runtime filter that will be applied to log messages.
+    ///
+    /// This filter operates alongside any comptime filtering configured
+    /// via `std.options.log_scope_levels`.
+    filter: ?Filter = null,
     /// Configuration for timestamps in log messages.
     ///
     /// If not provided no timestamps will be included
@@ -177,10 +181,12 @@ pub const InitializeError = error{AlreadyInitialized};
 /// ```
 pub fn Logex(comptime appender_types: anytype) type {
     return struct {
+        const Self = @This();
+
         pub const Appenders = AppenderInstances(appender_types);
         var appenders: Appenders = undefined;
         var options: LogexOptions = undefined;
-        var filter: ?EnvFilter = null;
+        var filter: ?Filter = null;
 
         /// Initializes logex in a thread-safe manner.
         ///
@@ -190,7 +196,7 @@ pub fn Logex(comptime appender_types: anytype) type {
         ///
         /// Options argument is a tuple containing appender instances in the same order that the types
         /// were provided to the `Logex` type constructor.
-        pub fn init(allocator: Allocator, opts: LogexOptions, appender_instances: Appenders) InitializeError!void {
+        pub fn init(opts: LogexOptions, appender_instances: Appenders) InitializeError!void {
             if (state.cmpxchgStrong(.uninitialized, .initializing, .acquire, .acquire)) |current| {
                 switch (current) {
                     .initialized => return InitializeError.AlreadyInitialized,
@@ -206,8 +212,8 @@ pub fn Logex(comptime appender_types: anytype) type {
                 appenders = appender_instances;
                 options = opts;
 
-                if (opts.env_filter) {
-                    filter = .init(allocator) catch {}; // user provided error handler?
+                if (opts.filter) |f| {
+                    filter = f;
                 }
 
                 state.store(.initialized, .seq_cst);
@@ -221,7 +227,9 @@ pub fn Logex(comptime appender_types: anytype) type {
             args: anytype,
         ) void {
             if (state.load(.seq_cst) != .initialized) return;
-            if (filter != null and !filter.?.should_log()) return;
+            if (filter) |f| {
+                if (!f.enabled(level, @tagName(scope))) return;
+            }
 
             const record: Record = .{
                 .level = level,
