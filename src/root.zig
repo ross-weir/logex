@@ -10,3 +10,7 @@ pub const InitializeError = logex.InitializeError;
 
 pub const format = @import("format.zig");
 pub const appenders = @import("appenders.zig");
+
+test "logex" {
+    _ = @import("filter/env.zig");
+}

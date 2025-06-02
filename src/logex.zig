@@ -1,5 +1,5 @@
 const std = @import("std");
-const Filter = @import("filter.zig").Filter;
+const Filter = @import("filter/Filter.zig");
 
 const Allocator = std.mem.Allocator;
 
