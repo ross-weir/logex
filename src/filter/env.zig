@@ -89,7 +89,7 @@ pub const EnvFilter = struct {
             return @intFromEnum(level) <= @intFromEnum(directive.level);
         }
 
-        return @intFromEnum(level) <= std.options.log_level;
+        return @intFromEnum(level) <= @intFromEnum(std.options.log_level);
     }
 
     fn typeErasedEnabledFn(
@@ -168,6 +168,17 @@ test "EnvFilter.enabled - scoped and global" {
     try expect(filter.enabled(.info, "scope2"));
 }
 
-// test universve (catch new log level variant)
+test "EnvFilter.enabled - no match" {
+    const filter: EnvFilter = try .initSlice(std.testing.allocator, "scope1=warn,scope2=debug");
+    defer filter.deinit(std.testing.allocator);
 
-// if no global and no log level found for scope we should fallback to std.options.log_level
+    try expect(filter.enabled(std.options.log_level, "scope3"));
+}
+
+// Test that we cover all log level variants
+// In the unlikely case that a new log level variant is added we ensure we catch it with this test
+test "universe" {
+    switch (std.options.log_level) {
+        .debug, .info, .warn, .err => {},
+    }
+}
