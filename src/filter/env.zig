@@ -10,8 +10,8 @@ const Directive = struct {
 
 fn sortDirectives(_: void, a: Directive, b: Directive) bool {
     if (a.scope == null and b.scope == null) return false;
-    if (a.scope == null) return true;
-    if (b.scope == null) return false;
+    if (a.scope == null) return false;
+    if (b.scope == null) return true;
     return std.ascii.lessThanIgnoreCase(a.scope.?, b.scope.?);
 }
 
@@ -105,8 +105,8 @@ pub const EnvFilter = struct {
 const expectEqualDeep = std.testing.expectEqualDeep;
 
 test parse {
-    const result = try parse(std.testing.allocator, "scope1=debug,scope2=info,scope3=warn,scope55=err");
-    defer deinitDirectives(std.testing.allocator, result);
+    const dirs = try parse(std.testing.allocator, "scope1=debug,scope2=info,scope3=warn,scope55=err");
+    defer deinitDirectives(std.testing.allocator, dirs);
     const expected = [_]Directive{
         .{ .scope = "scope1", .level = .debug },
         .{ .scope = "scope2", .level = .info },
@@ -114,31 +114,31 @@ test parse {
         .{ .scope = "scope55", .level = .err },
     };
 
-    try expectEqualDeep(&expected, result);
+    try expectEqualDeep(&expected, dirs);
 }
 
 test "parse - multiple levels" {
-    const result = try parse(std.testing.allocator, "scope1=info=debug");
-    try std.testing.expectEqual(&[_]Directive{}, result);
+    const dirs = try parse(std.testing.allocator, "scope1=info=debug");
+    try std.testing.expectEqual(&[_]Directive{}, dirs);
 }
 
 test "parse - invalid level" {
-    const result = try parse(std.testing.allocator, "scope1=invalidLevel");
-    try std.testing.expectEqual(&[_]Directive{}, result);
+    const dirs = try parse(std.testing.allocator, "scope1=invalidLevel");
+    try std.testing.expectEqual(&[_]Directive{}, dirs);
 }
 
 test "parse - sorting" {
-    const result = try parse(std.testing.allocator, "scope1=debug,alpha=info,info,zebra=err,batman=warn");
-    defer deinitDirectives(std.testing.allocator, result);
+    const dirs = try parse(std.testing.allocator, "scope1=debug,alpha=info,info,zebra=err,batman=warn");
+    defer deinitDirectives(std.testing.allocator, dirs);
     const expected = [_]Directive{
-        .{ .scope = null, .level = .info },
         .{ .scope = "alpha", .level = .info },
         .{ .scope = "batman", .level = .warn },
         .{ .scope = "scope1", .level = .debug },
         .{ .scope = "zebra", .level = .err },
+        .{ .scope = null, .level = .info },
     };
     try expectEqualDeep(
         &expected,
-        result,
+        dirs,
     );
 }

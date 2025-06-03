@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const Allocator = std.mem.Allocator;
+const Self = @This();
 
 context: *const anyopaque,
 enabledFn: *const fn (
@@ -10,7 +10,7 @@ enabledFn: *const fn (
 ) bool,
 
 pub fn enabled(
-    self: @This(),
+    self: Self,
     level: std.log.Level,
     scope: []const u8,
 ) bool {

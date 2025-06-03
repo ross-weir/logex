@@ -12,5 +12,5 @@ pub const format = @import("format.zig");
 pub const appenders = @import("appenders.zig");
 
 test "logex" {
-    _ = @import("filter/env.zig");
+    _ = @import("filter.zig");
 }
