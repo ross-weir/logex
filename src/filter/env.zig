@@ -89,7 +89,7 @@ pub const EnvFilter = struct {
             return @intFromEnum(level) <= @intFromEnum(directive.level);
         }
 
-        return false;
+        return @intFromEnum(level) <= std.options.log_level;
     }
 
     fn typeErasedEnabledFn(
@@ -103,6 +103,7 @@ pub const EnvFilter = struct {
 };
 
 const expectEqualDeep = std.testing.expectEqualDeep;
+const expect = std.testing.expect;
 
 test parse {
     const dirs = try parse(std.testing.allocator, "scope1=debug,scope2=info,scope3=warn,scope55=err");
@@ -142,3 +143,31 @@ test "parse - sorting" {
         dirs,
     );
 }
+
+test "EnvFilter.enabled - global" {
+    const filter: EnvFilter = try .initSlice(std.testing.allocator, "info");
+    defer filter.deinit(std.testing.allocator);
+
+    try expect(filter.enabled(.info, "scope1"));
+    try expect(!filter.enabled(.debug, "scope1"));
+}
+
+test "EnvFilter.enabled - scoped" {
+    const filter: EnvFilter = try .initSlice(std.testing.allocator, "scope1=info");
+    defer filter.deinit(std.testing.allocator);
+
+    try expect(filter.enabled(.info, "scope1"));
+    try expect(!filter.enabled(.debug, "scope1"));
+}
+
+test "EnvFilter.enabled - scoped and global" {
+    const filter: EnvFilter = try .initSlice(std.testing.allocator, "info,scope1=warn");
+    defer filter.deinit(std.testing.allocator);
+
+    try expect(filter.enabled(.warn, "scope1"));
+    try expect(filter.enabled(.info, "scope2"));
+}
+
+// test universve (catch new log level variant)
+
+// if no global and no log level found for scope we should fallback to std.options.log_level
