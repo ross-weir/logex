@@ -1,3 +1,5 @@
+/// Apply filtering based on environment variables
+/// Inspired by env filtering from the Rust logging ecosystem: https://github.com/rust-cli/env_logger/tree/main/crates/env_filter
 const std = @import("std");
 const Filter = @import("./Filter.zig");
 
