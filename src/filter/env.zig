@@ -48,32 +48,45 @@ fn deinitDirectives(allocator: Allocator, directives: []Directive) void {
     allocator.free(directives);
 }
 
+/// EnvFilter provides log filtering based on environment variables.
+/// It allows configuring log levels for specific scopes through environment variables.
+/// The default environment variable used is "ZIG_LOG".
 pub const EnvFilter = struct {
     directives: []Directive,
 
     const Self = @This();
+    /// The default environment variable name used for log configuration
     pub const default_env = "ZIG_LOG";
 
+    /// Initializes a new EnvFilter using the default environment variable (ZIG_LOG)
+    /// Returns an error if the environment variable cannot be read or parsed
     pub fn init(allocator: Allocator) !Self {
         return initEnvVar(allocator, default_env);
     }
 
+    /// Initializes a new EnvFilter using a specific environment variable
+    /// Returns an error if the environment variable cannot be read or parsed
     pub fn initEnvVar(allocator: Allocator, key: []const u8) !Self {
         const slice = std.process.getEnvVarOwned(allocator, key);
         defer allocator.free(slice);
         return initSlice(allocator, slice);
     }
 
+    /// Initializes a new EnvFilter using a direct string slice
+    /// The string should be in the format "scope1=level1,scope2=level2" or just "level" for global level
+    /// Returns an error if the string cannot be parsed
     pub fn initSlice(allocator: Allocator, slice: []const u8) !Self {
         return .{
             .directives = try parse(allocator, slice),
         };
     }
 
+    /// Frees all resources associated with this EnvFilter
     pub fn deinit(self: *const Self, allocator: Allocator) void {
         deinitDirectives(allocator, self.directives);
     }
 
+    /// Creates a Filter instance that can be used with the logging system
     pub fn filter(self: *const Self) Filter {
         return .{
             .context = self,
@@ -81,6 +94,8 @@ pub const EnvFilter = struct {
         };
     }
 
+    /// Checks if a log message with the given level and scope should be enabled
+    /// Returns true if the message should be logged, false otherwise
     pub fn enabled(self: *const Self, level: std.log.Level, scope: []const u8) bool {
         for (self.directives) |directive| {
             if (directive.scope) |s| {
