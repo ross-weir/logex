@@ -136,7 +136,7 @@ See a complete example using a custom formatter [here](example/src/custom_format
 
 ## Runtime Filtering
 
-`logex` provides filtering at runtime that works alongside comptime filtering (`std.options.log_levels`).
+`logex` provides filtering at runtime that works alongside comptime filtering (`std.options.log_scope_levels` / `std.options.log_level`).
 
 An environment variable based filter is provided out of the box with capabilities similar to the Rust ecosystem's `env_logger`. This allows you to configure log levels for different scopes at runtime through environment variables, without recompiling your application.
 
@@ -149,11 +149,13 @@ scope1=level1,scope2=level2,level3
 ```
 
 Where:
+
 - `scope` is the logging scope (e.g., "my_module")
 - `level` is one of: debug, info, warn, err
 - A level without a scope sets the default level
 
 Examples:
+
 ```bash
 # Set default level to info
 export ZIG_LOG=info
