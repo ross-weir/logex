@@ -4,6 +4,18 @@
 
 `logex` (log extensions) is a minimal, extensible logging library for Zig that enhances `std.log` with additional features while maintaining a simple, drop-in interface.
 
+## Table of Contents
+
+- [Features](#features)
+- [Install](#install)
+- [Quick Start](#quick-start)
+- [Appenders](#appenders)
+  - [Creating Custom Appenders](#creating-custom-appenders)
+- [Formatting](#formatting)
+- [Runtime Filtering](#runtime-filtering)
+  - [Environment Variable Configuration](#environment-variable-configuration)
+- [Examples](#examples)
+
 ## Features
 
 - **Drop-in Extension**: Extends `std.log` with extra features - easy to add and remove without changing logging calls throughout your project
@@ -12,6 +24,7 @@
   - Text (compatible with `std.log` default format)
   - JSON
   - Custom (implement your own formatting function)
+- **Runtime filtering**: Extends scope/log level filtering with runtime options, this allows for environment variable based filtering similar to [`env_logger`](https://github.com/rust-cli/env_logger) from the Rust logging ecosystem.
 - **Minimal Impact**: `logex` aims to add minimal overhead by remaining comptime as much as possible like the default `std.log` implementation.
 
 ## Install
@@ -121,6 +134,41 @@ See a more complete example [here](example/src/custom_appender.zig).
 - **Custom**: Implement your own formatting function
 
 See a complete example using a custom formatter [here](example/src/custom_format.zig).
+
+## Runtime Filtering
+
+`logex` provides filtering at runtime that works alongside comptime filtering (`std.options.log_scope_levels` / `std.options.log_level`).
+
+An environment variable based filter is provided out of the box with capabilities similar to the Rust ecosystem's `env_logger`. This allows you to configure log levels for different scopes at runtime through environment variables, without recompiling your application.
+
+### Environment Variable Configuration
+
+By default, `logex` uses the `ZIG_LOG` environment variable for configuration. The format is:
+
+```
+scope1=level1,scope2=level2,level3
+```
+
+Where:
+
+- `scope` is the logging scope (e.g., "my_module")
+- `level` is one of: debug, info, warn, err
+- A level without a scope sets the default level
+
+Examples:
+
+```bash
+# Set default level to info
+export ZIG_LOG=info
+
+# Set specific scopes
+export ZIG_LOG=my_module=debug,other_module=warn
+
+# Mix of scoped and default levels
+export ZIG_LOG=info,my_module=debug,other_module=warn
+```
+
+See a complete example of runtime filtering [here](example/src/env_filter.zig).
 
 ## Examples
 

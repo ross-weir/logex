@@ -1,4 +1,7 @@
 const std = @import("std");
+const Filter = @import("./filter.zig").Filter;
+
+const Allocator = std.mem.Allocator;
 
 fn AppenderInstances(comptime appenders: anytype) type {
     const fields = std.meta.fields(@TypeOf(appenders));
@@ -77,6 +80,11 @@ pub const TimestampOptions = union(enum) {
 
 /// Main logex runtime configuration.
 pub const LogexOptions = struct {
+    /// A runtime filter that will be applied to log messages.
+    ///
+    /// This filter operates alongside any comptime filtering configured
+    /// via `std.options.log_scope_levels`.
+    filter: ?Filter = null,
     /// Configuration for timestamps in log messages.
     ///
     /// If not provided no timestamps will be included
@@ -169,13 +177,16 @@ pub const InitializeError = error{AlreadyInitialized};
 ///
 /// // note the we must use the same order here,
 /// // if we provided `console_appender` first this would be incorrect.
-/// Logger.init(file_appender, console_appender);
+/// Logger.init(.{}, .{file_appender, console_appender});
 /// ```
 pub fn Logex(comptime appender_types: anytype) type {
     return struct {
+        const Self = @This();
+
         pub const Appenders = AppenderInstances(appender_types);
         var appenders: Appenders = undefined;
         var options: LogexOptions = undefined;
+        var filter: ?Filter = null;
 
         /// Initializes logex in a thread-safe manner.
         ///
@@ -200,6 +211,11 @@ pub fn Logex(comptime appender_types: anytype) type {
             } else {
                 appenders = appender_instances;
                 options = opts;
+
+                if (opts.filter) |f| {
+                    filter = f;
+                }
+
                 state.store(.initialized, .seq_cst);
             }
         }
@@ -211,6 +227,9 @@ pub fn Logex(comptime appender_types: anytype) type {
             args: anytype,
         ) void {
             if (state.load(.seq_cst) != .initialized) return;
+            if (filter) |f| {
+                if (!f.enabled(level, @tagName(scope))) return;
+            }
 
             const record: Record = .{
                 .level = level,
