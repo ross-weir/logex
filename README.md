@@ -24,6 +24,7 @@
   - Text (compatible with `std.log` default format)
   - JSON
   - Custom (implement your own formatting function)
+- **Runtime filtering**: Extends scope/log level filtering with runtime options, this allows for environment variable based filtering similar to [`env_logger`](https://github.com/rust-cli/env_logger) from the Rust logging ecosystem.
 - **Minimal Impact**: `logex` aims to add minimal overhead by remaining comptime as much as possible like the default `std.log` implementation.
 
 ## Install
