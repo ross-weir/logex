@@ -145,6 +145,17 @@ test "parse - invalid level" {
     try std.testing.expectEqual(&[_]Directive{}, dirs);
 }
 
+test "parse - global" {
+    const dirs = try parse(std.testing.allocator, "warn");
+    defer deinitDirectives(std.testing.allocator, dirs);
+    try expectEqualDeep(
+        &[_]Directive{
+            .{ .scope = null, .level = .warn },
+        },
+        dirs,
+    );
+}
+
 test "parse - sorting" {
     const dirs = try parse(std.testing.allocator, "scope1=debug,alpha=info,info,zebra=err,batman=warn");
     defer deinitDirectives(std.testing.allocator, dirs);
@@ -182,6 +193,15 @@ test "EnvFilter.enabled - scoped and global" {
     defer filter.deinit(std.testing.allocator);
 
     try expect(filter.enabled(.warn, "scope1"));
+    try expect(filter.enabled(.info, "scope2"));
+}
+
+test "EnvFilter.enabled - scoped preferred over global" {
+    const filter: EnvFilter = try .initSlice(std.testing.allocator, "info,scope1=debug");
+    defer filter.deinit(std.testing.allocator);
+
+    try expect(filter.enabled(.debug, "scope1"));
+    try expect(!filter.enabled(.debug, "scope2"));
     try expect(filter.enabled(.info, "scope2"));
 }
 
