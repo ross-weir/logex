@@ -1,5 +1,8 @@
 /// Apply filtering based on environment variables
 /// Inspired by env filtering from the Rust logging ecosystem: https://github.com/rust-cli/env_logger/tree/main/crates/env_filter
+///
+/// When no environment variable is set, the filter will fall back to using `std.options.log_level`
+/// for all scopes. This means logs will be filtered based on the compile-time log level settings.
 const std = @import("std");
 const Filter = @import("./Filter.zig");
 
@@ -53,6 +56,9 @@ fn deinitDirectives(allocator: Allocator, directives: []Directive) void {
 /// EnvFilter provides log filtering based on environment variables.
 /// It allows configuring log levels for specific scopes through environment variables.
 /// The default environment variable used is "ZIG_LOG".
+///
+/// When no environment variable is set, the filter will fall back to using `std.options.log_level`
+/// for all scopes. This means logs will be filtered based on the compile-time log level settings.
 pub const EnvFilter = struct {
     directives: []Directive,
 
@@ -69,7 +75,10 @@ pub const EnvFilter = struct {
     /// Initializes a new EnvFilter using a specific environment variable
     /// Returns an error if the environment variable cannot be read or parsed
     pub fn initEnvVar(allocator: Allocator, key: []const u8) !Self {
-        const slice = std.process.getEnvVarOwned(allocator, key);
+        const slice = std.process.getEnvVarOwned(allocator, key) catch |err| switch (err) {
+            error.EnvironmentVariableNotFound => return .{ .directives = &[_]Directive{} },
+            else => return err,
+        };
         defer allocator.free(slice);
         return initSlice(allocator, slice);
     }
@@ -114,7 +123,7 @@ pub const EnvFilter = struct {
         level: std.log.Level,
         scope: []const u8,
     ) bool {
-        const self: *Self = @alignCast(@ptrCast(context));
+        const self: *const Self = @alignCast(@ptrCast(context));
         return self.enabled(level, scope);
     }
 };
