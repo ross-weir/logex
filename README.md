@@ -24,8 +24,8 @@
   - Text (compatible with `std.log` default format)
   - JSON
   - Custom (implement your own formatting function)
-- **Runtime filtering**: Extends scope/log level filtering with runtime options, this allows for environment variable based filtering similar to [`env_logger`](https://github.com/rust-cli/env_logger) from the Rust logging ecosystem.
-- **Minimal Impact**: `logex` aims to add minimal overhead by remaining comptime as much as possible like the default `std.log` implementation.
+- **Runtime filtering**: Extends scope/log level filtering with runtime options, this allows for environment variable based filtering similar to [`env_logger`](https://github.com/rust-cli/env_logger) from the Rust logging ecosystem
+- **Minimal Impact**: `logex` aims to add minimal overhead by remaining comptime as much as possible like the default `std.log` implementation
 
 ## Install
 
@@ -102,6 +102,7 @@ Removing `logex` is as simple as removing `Logger.logFn` and deleting initialzat
 
 `logex` comes with two built-in appenders:
 
+- **Writer Appender**: A generic threadsafe appender that writes to an underlying `AnyWriter`
 - **Console Appender**: Logs to `stderr`, works the same as the default `logFn` from `std.log`
 - **File Appender**: Logs to file
 
