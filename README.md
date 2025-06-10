@@ -169,7 +169,7 @@ export ZIG_LOG=my_module=debug,other_module=warn
 export ZIG_LOG=info,my_module=debug,other_module=warn
 ```
 
-See a complete example of runtime filtering [here](example/src/env_filter.zig).
+See a complete example of runtime filtering [here](example/src/filter.zig).
 
 ## Examples
 
