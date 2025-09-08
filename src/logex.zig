@@ -252,10 +252,13 @@ pub fn Logex(comptime appender_types: anytype) type {
                 };
             }
 
-            inline for (std.meta.fields(@TypeOf(appenders))) |field| {
-                if (@field(appenders, field.name)) |*appender| {
-                    // TODO: allow users to provide a error handler?
-                    appender.log(&record, &context) catch {};
+            inline for (std.meta.fields(@TypeOf(appender_types))) |field| {
+                const T = @field(appender_types, field.name);
+                if (comptime T.enabled(level)) {
+                    if (@field(appenders, field.name)) |*appender| {
+                        // TODO: allow users to provide a error handler?
+                        appender.log(&record, &context) catch {};
+                    }
                 }
             }
         }
