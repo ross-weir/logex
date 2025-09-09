@@ -20,10 +20,10 @@ pub fn Writer(
     return struct {
         const Self = @This();
 
-        writer: std.Io.Writer,
+        writer: *std.Io.Writer,
         mutex: std.Thread.Mutex = .{},
 
-        pub fn init(writer: std.Io.Writer) Self {
+        pub fn init(writer: *std.Io.Writer) Self {
             return .{ .writer = writer };
         }
 
@@ -33,7 +33,8 @@ pub fn Writer(
         ) !void {
             self.mutex.lock();
             defer self.mutex.unlock();
-            try opts.format.write(&self.writer, context);
+            try opts.format.write(self.writer, context);
+            try self.writer.flush();
         }
 
         pub fn enabled(comptime log_level: std.log.Level) bool {
@@ -88,8 +89,11 @@ pub fn File(
     return struct {
         const Self = @This();
         const Inner = Writer(level, opts);
-        var buffer: [4096]u8 = undefined;
 
+        // If buffer is a global we get a "General protection exception" error.
+        // Not sure why this is the case, probably doesnt matter.
+        buffer: [4096]u8 = undefined,
+        file: std.fs.File,
         inner: Inner,
 
         /// Create a File appender that writes to the supplied file path.
@@ -108,7 +112,15 @@ pub fn File(
         /// The file will be appended to if it already contains content.
         pub fn initFromFile(file: std.fs.File) !Self {
             try file.seekTo(try file.getEndPos());
-            return .{ .inner = .init(file.writer(&buffer).interface) };
+
+            var self: Self = .{
+                .file = file,
+                .inner = undefined,
+            };
+            var writer = file.writer(&self.buffer);
+            self.inner = Inner.init(&writer.interface);
+
+            return self;
         }
 
         pub inline fn log(
