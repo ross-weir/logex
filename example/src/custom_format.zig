@@ -5,7 +5,6 @@ const logex = @import("logex");
 // prefixes the log line with `[custom]` for demo purposes
 pub fn formatFn(
     writer: anytype,
-    comptime _: *const logex.Record,
     context: *const logex.Context,
 ) @TypeOf(writer).Error!void {
     try writer.print("[custom] {s}\n", .{context.message});
@@ -15,7 +14,7 @@ const ConsoleAppender = logex.appenders.Console(.debug, .{
     // Configure the console appender to use our custom format function
     .format = .{ .custom = formatFn },
 });
-const Logger = logex.Logex(.{ConsoleAppender});
+const Logger = logex.Logex(.{}, .{ConsoleAppender});
 
 pub const std_options: std.Options = .{
     .logFn = Logger.logFn,

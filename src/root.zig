@@ -1,11 +1,10 @@
-const std = @import("std");
-
 const logex = @import("logex.zig");
+
 pub const Logex = logex.Logex;
 pub const LogexOptions = logex.LogexOptions;
+pub const InitOptions = logex.InitOptions;
 pub const TimestampOptions = logex.TimestampOptions;
 pub const Context = logex.Context;
-pub const Record = logex.Record;
 pub const InitializeError = logex.InitializeError;
 
 pub const format = @import("format.zig");

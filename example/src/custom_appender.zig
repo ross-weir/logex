@@ -20,10 +20,9 @@ pub fn CustomAppender(
 
         pub fn log(
             self: *Self,
-            comptime record: *const logex.Record,
             context: *const logex.Context,
         ) !void {
-            try opts.format.write(self.writer, record, context);
+            try opts.format.write(self.writer, context);
         }
 
         pub fn enabled(comptime log_level: std.log.Level) bool {
@@ -34,7 +33,7 @@ pub fn CustomAppender(
 }
 
 const MyAppender = CustomAppender(.debug, .{});
-const Logger = logex.Logex(.{MyAppender});
+const Logger = logex.Logex(.{}, .{MyAppender});
 
 pub const std_options: std.Options = .{
     .logFn = Logger.logFn,

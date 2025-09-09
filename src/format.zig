@@ -2,13 +2,11 @@ const std = @import("std");
 const root = @import("root.zig");
 
 const Options = root.Options;
-const Record = root.Record;
 const Context = root.Context;
 
 /// Function type that is called to format log messages.
-pub const FormatFn = fn (
+pub const FormatFn = *const fn (
     writer: anytype,
-    comptime record: *const Record,
     context: *const Context,
 ) anyerror!void;
 
@@ -24,20 +22,18 @@ pub const Format = union(enum) {
     pub fn write(
         self: Format,
         writer: anytype,
-        comptime record: *const Record,
         context: *const Context,
     ) anyerror!void {
         return switch (self) {
-            .text => text(writer, record, context),
-            .json => json(writer, record, context),
-            .custom => |func| func(writer, record, context),
+            .text => text(writer, context),
+            .json => json(writer, context),
+            .custom => |func| func(writer, context),
         };
     }
 };
 
 fn text(
     writer: anytype,
-    comptime record: *const Record,
     context: *const Context,
 ) @TypeOf(writer).Error!void {
     if (context.timestamp) |ts| {
@@ -48,26 +44,15 @@ fn text(
         try writer.print("tid={s} ", .{th});
     }
 
-    const level_txt = comptime record.level.asText();
-    const prefix2 = if (record.scope == std.log.default_log_scope) ":" else "(" ++ @tagName(record.scope) ++ "):";
-
-    try writer.print(level_txt ++ prefix2 ++ " {s}\n", .{context.message});
+    try writer.print("{s}({s}): {s}\n", .{ context.level, context.scope, context.message });
 }
 
 fn json(
     writer: anytype,
-    comptime record: *const Record,
     context: *const Context,
 ) @TypeOf(writer).Error!void {
-    const level = comptime record.level.asText();
     try std.json.stringify(
-        .{
-            .level = level,
-            .scope = @tagName(record.scope),
-            .tid = context.thread,
-            .timestamp = context.timestamp,
-            .message = context.message,
-        },
+        context,
         .{ .emit_null_optional_fields = false },
         writer,
     );

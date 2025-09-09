@@ -73,7 +73,7 @@ const FileAppender = logex.appenders.File(.info, .{
 });
 
 // Create logger type with both appender types
-const Logger = logex.Logex(.{ ConsoleAppender, FileAppender });
+const Logger = logex.Logex(.{}, .{ ConsoleAppender, FileAppender });
 
 // Use in std_options
 pub const std_options: std.Options = .{
@@ -116,7 +116,6 @@ const logex = @import("logex");
 const MyCustomAppender = struct {
     pub fn log(
         self: *@This(),
-        comptime record: *const logex.Record,
         context: *const logex.Context,
     ) !void {
         // Implement your logging logic
