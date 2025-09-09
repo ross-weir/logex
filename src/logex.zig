@@ -78,13 +78,8 @@ pub const TimestampOptions = union(enum) {
     }
 };
 
-/// Main logex runtime configuration.
+/// Main logex comptime configuration.
 pub const LogexOptions = struct {
-    /// A runtime filter that will be applied to log messages.
-    ///
-    /// This filter operates alongside any comptime filtering configured
-    /// via `std.options.log_scope_levels`.
-    filter: ?Filter = null,
     /// Configuration for timestamps in log messages.
     ///
     /// If not provided no timestamps will be included
@@ -101,14 +96,24 @@ pub const LogexOptions = struct {
     } = null,
 };
 
+/// Main logex runtime configuration.
+pub const InitOptions = struct {
+    /// A runtime filter that will be applied to log messages.
+    ///
+    /// This filter operates alongside any comptime filtering configured
+    /// via `std.options.log_scope_levels`.
+    filter: ?Filter = null,
+};
+
 /// Provides context that is needed to write the log line.
 /// The extra context could be added depending on option
 /// configuration and will be determined at runtime.
-///
-/// This struct is separate to `Record` because it contains
-/// runtime fields and thus can't be used at comptime.
 pub const Context = struct {
-    /// The formatted log message
+    /// The std.log.Level as a string.
+    level: []const u8,
+    /// The scope that emitted the log as a string.
+    scope: []const u8,
+    /// The formatted log message.
     message: []const u8,
     /// If `logex` was configured to show a timestamp
     /// then this field will contain the timestamp formatted
@@ -122,16 +127,6 @@ pub const Context = struct {
     ///
     /// If displaying threads was not configured then this will be `null`.
     thread: ?[]const u8 = null,
-};
-
-/// A record structure containing information about a logging event.
-/// This type contains fields that are comptime known only.
-///
-/// This struct is separate to `Context` so it can remain `comptime`
-/// which is important for comptime log level checking.
-pub const Record = struct {
-    level: std.log.Level,
-    scope: @Type(.enum_literal),
 };
 
 const State = enum(u8) {
@@ -153,11 +148,12 @@ pub const InitializeError = error{AlreadyInitialized};
 /// const Appender = struct {
 ///     pub fn log(
 ///         _: *Appender,
-///         comptime message_level: std.log.Level,
-///         comptime scope: @Type(.enum_literal),
-///         comptime format: []const u8,
-///         args: anytype,
+///        context: *const logex.Context,
 ///     ) !void {}
+///
+///     pub fn enabled(comptime log_level: std.log.Level) bool {
+///         return @intFromEnum(log_level) <= @intFromEnum(level);
+///     }
 /// };
 /// ```
 ///
@@ -169,7 +165,7 @@ pub const InitializeError = error{AlreadyInitialized};
 /// ```zig
 /// // Because the types are provided in order: file, console in this tuple the instances
 /// // should also be provided in this order when we call Logger.init()
-/// const Logger = Logex(.{FileAppender(), ConsoleAppender()});
+/// const Logger = Logex(.{}, .{FileAppender(), ConsoleAppender()});
 ///
 /// // ..snip
 /// const file_appender = .init("app.log");
@@ -179,13 +175,12 @@ pub const InitializeError = error{AlreadyInitialized};
 /// // if we provided `console_appender` first this would be incorrect.
 /// Logger.init(.{}, .{file_appender, console_appender});
 /// ```
-pub fn Logex(comptime appender_types: anytype) type {
+pub fn Logex(comptime opts: LogexOptions, comptime appender_types: anytype) type {
     return struct {
         const Self = @This();
 
         pub const Appenders = AppenderInstances(appender_types);
         var appenders: Appenders = undefined;
-        var options: LogexOptions = undefined;
         var filter: ?Filter = null;
 
         /// Initializes logex in a thread-safe manner.
@@ -196,7 +191,7 @@ pub fn Logex(comptime appender_types: anytype) type {
         ///
         /// Options argument is a tuple containing appender instances in the same order that the types
         /// were provided to the `Logex` type constructor.
-        pub fn init(opts: LogexOptions, appender_instances: Appenders) InitializeError!void {
+        pub fn init(init_opts: InitOptions, appender_instances: Appenders) InitializeError!void {
             if (state.cmpxchgStrong(.uninitialized, .initializing, .acquire, .acquire)) |current| {
                 switch (current) {
                     .initialized => return InitializeError.AlreadyInitialized,
@@ -210,9 +205,8 @@ pub fn Logex(comptime appender_types: anytype) type {
                 }
             } else {
                 appenders = appender_instances;
-                options = opts;
 
-                if (opts.filter) |f| {
+                if (init_opts.filter) |f| {
                     filter = f;
                 }
 
@@ -226,38 +220,47 @@ pub fn Logex(comptime appender_types: anytype) type {
             comptime fmt: []const u8,
             args: anytype,
         ) void {
+            if (comptime !shouldLog(level)) return;
             if (state.load(.seq_cst) != .initialized) return;
             if (filter) |f| {
                 if (!f.enabled(level, @tagName(scope))) return;
             }
 
-            const record: Record = .{
-                .level = level,
-                .scope = scope,
-            };
+            // maybe better to use a thread local var
+            // if there's many versions of this func it could add up
             var buf: [2048]u8 = undefined;
             // panic for now, see if we can get away with stack alloc buffer
-            const message = std.fmt.bufPrint(&buf, fmt, args) catch @panic("formatted buffer too small");
-            var context: Context = .{ .message = message };
+            var context: Context = .{ .scope = @tagName(scope), .level = comptime level.asText(), .message = std.fmt.bufPrint(&buf, fmt, args) catch @panic("formatted buffer too small") };
 
-            if (options.show_timestamp) |ts| {
+            if (comptime opts.show_timestamp) |ts| {
                 var timestamp: [64]u8 = undefined;
                 context.timestamp = ts.write(&timestamp, std.time.milliTimestamp()) catch return;
             }
 
-            if (options.show_thread) |id| {
+            if (comptime opts.show_thread) |id| {
                 var thread: [std.Thread.max_name_len]u8 = undefined;
-                context.thread = switch (id) {
+                context.thread = comptime switch (id) {
                     .id => std.fmt.bufPrint(&thread, "{d}", .{std.Thread.getCurrentId()}) catch unreachable,
                 };
             }
 
-            inline for (std.meta.fields(@TypeOf(appenders))) |field| {
-                if (@field(appenders, field.name)) |*appender| {
-                    // TODO: allow users to provide a error handler?
-                    appender.log(&record, &context) catch {};
+            inline for (std.meta.fields(@TypeOf(appender_types))) |field| {
+                const T = @field(appender_types, field.name);
+                if (comptime T.enabled(level)) {
+                    if (@field(appenders, field.name)) |*appender| {
+                        // TODO: allow users to provide a error handler?
+                        appender.log(&context) catch {};
+                    }
                 }
             }
+        }
+
+        fn shouldLog(comptime level: std.log.Level) bool {
+            inline for (std.meta.fields(@TypeOf(appender_types))) |field| {
+                const T = @field(appender_types, field.name);
+                if (T.enabled(level)) return true;
+            }
+            return false;
         }
     };
 }

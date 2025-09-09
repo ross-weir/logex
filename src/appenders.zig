@@ -2,7 +2,6 @@ const std = @import("std");
 const root = @import("root.zig");
 const format = @import("format.zig");
 
-const Record = root.Record;
 const Context = root.Context;
 
 /// Configuration options that apply to `Appender`s.
@@ -31,14 +30,15 @@ pub fn Writer(
 
         pub fn log(
             self: *Self,
-            comptime record: *const Record,
             context: *const Context,
         ) !void {
-            if (comptime @intFromEnum(record.level) > @intFromEnum(level)) return;
-
             self.mutex.lock();
             defer self.mutex.unlock();
-            try opts.format.write(self.writer, record, context);
+            try opts.format.write(self.writer, context);
+        }
+
+        pub fn enabled(comptime log_level: std.log.Level) bool {
+            return @intFromEnum(log_level) <= @intFromEnum(level);
         }
     };
 }
@@ -57,11 +57,8 @@ pub fn Console(
 
         pub fn log(
             _: *Self,
-            comptime record: *const Record,
             context: *const Context,
         ) !void {
-            if (comptime @intFromEnum(record.level) > @intFromEnum(level)) return;
-
             const stderr = std.io.getStdErr().writer();
             var bw = std.io.bufferedWriter(stderr);
             const writer = bw.writer();
@@ -72,9 +69,13 @@ pub fn Console(
             std.debug.lockStdErr();
             defer std.debug.unlockStdErr();
             nosuspend {
-                try opts.format.write(writer, record, context);
+                try opts.format.write(writer, context);
                 try bw.flush();
             }
+        }
+
+        pub fn enabled(comptime log_level: std.log.Level) bool {
+            return @intFromEnum(log_level) <= @intFromEnum(level);
         }
     };
 }
@@ -87,8 +88,9 @@ pub fn File(
 ) type {
     return struct {
         const Self = @This();
+        const Inner = Writer(level, opts, std.fs.File.Writer);
 
-        inner: Writer(level, opts, std.fs.File.Writer),
+        inner: Inner,
 
         /// Create a File appender that writes to the supplied file path.
         /// The file will be appended to if it already exists.
@@ -111,10 +113,13 @@ pub fn File(
 
         pub inline fn log(
             self: *Self,
-            comptime record: *const Record,
             context: *const Context,
         ) !void {
-            return self.inner.log(record, context);
+            return self.inner.log(context);
+        }
+
+        pub fn enabled(comptime log_level: std.log.Level) bool {
+            return Inner.enabled(log_level);
         }
     };
 }

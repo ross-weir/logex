@@ -20,19 +20,20 @@ pub fn CustomAppender(
 
         pub fn log(
             self: *Self,
-            comptime record: *const logex.Record,
             context: *const logex.Context,
         ) !void {
-            // comptime log level check, no runtime overhead
-            if (comptime @intFromEnum(record.level) > @intFromEnum(level)) return;
+            try opts.format.write(self.writer, context);
+        }
 
-            try opts.format.write(self.writer, record, context);
+        pub fn enabled(comptime log_level: std.log.Level) bool {
+            // could include more complicated "enabled" logic
+            return @intFromEnum(log_level) <= @intFromEnum(level);
         }
     };
 }
 
 const MyAppender = CustomAppender(.debug, .{});
-const Logger = logex.Logex(.{MyAppender});
+const Logger = logex.Logex(.{}, .{MyAppender});
 
 pub const std_options: std.Options = .{
     .logFn = Logger.logFn,

@@ -11,7 +11,7 @@ const ConsoleAppender = logex.appenders.Console(.debug, .{});
 
 /// Create our Logger type using the console appender type.
 /// We'll use the environment variable filter to control log levels at runtime.
-const Logger = logex.Logex(.{ConsoleAppender});
+const Logger = logex.Logex(.{}, .{ConsoleAppender});
 
 pub const std_options: std.Options = .{
     .logFn = Logger.logFn,

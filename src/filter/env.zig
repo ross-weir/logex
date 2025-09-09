@@ -60,11 +60,11 @@ fn deinitDirectives(allocator: Allocator, directives: []Directive) void {
 /// When no environment variable is set, the filter will fall back to using `std.options.log_level`
 /// for all scopes. This means logs will be filtered based on the compile-time log level settings.
 pub const EnvFilter = struct {
-    directives: []Directive,
-
     const Self = @This();
     /// The default environment variable name used for log configuration
     pub const default_env = "ZIG_LOG";
+
+    directives: []Directive,
 
     /// Initializes a new EnvFilter using the default environment variable (ZIG_LOG)
     /// Returns an error if the environment variable cannot be read or parsed
@@ -123,7 +123,7 @@ pub const EnvFilter = struct {
         level: std.log.Level,
         scope: []const u8,
     ) bool {
-        const self: *const Self = @alignCast(@ptrCast(context));
+        const self: *const Self = @ptrCast(@alignCast(context));
         return self.enabled(level, scope);
     }
 };

@@ -6,7 +6,7 @@ const std = @import("std");
 ///
 /// This provides functionality similar to configuring scopes/log levels via `std.options.log_scope_levels`
 /// but using runtime constructs (such as environment variables).
-const Self = @This();
+const Filter = @This();
 
 /// Opaque pointer to the filter implementation's context
 context: *const anyopaque,
@@ -20,7 +20,7 @@ enabledFn: *const fn (
 /// Checks if a log message with the given level and scope should be enabled
 /// Returns true if the message should be logged, false otherwise
 pub fn enabled(
-    self: Self,
+    self: Filter,
     level: std.log.Level,
     scope: []const u8,
 ) bool {
