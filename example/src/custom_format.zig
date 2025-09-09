@@ -4,9 +4,9 @@ const logex = @import("logex");
 // Define a basic custom formatting function that simply
 // prefixes the log line with `[custom]` for demo purposes
 pub fn formatFn(
-    writer: anytype,
+    writer: *std.Io.Writer,
     context: *const logex.Context,
-) @TypeOf(writer).Error!void {
+) std.Io.Writer.Error!void {
     try writer.print("[custom] {s}\n", .{context.message});
 }
 

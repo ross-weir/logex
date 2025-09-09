@@ -16,15 +16,14 @@ pub const Options = struct {
 pub fn Writer(
     comptime level: std.log.Level,
     comptime opts: Options,
-    comptime WriterType: type,
 ) type {
     return struct {
         const Self = @This();
 
-        writer: WriterType,
+        writer: std.Io.Writer,
         mutex: std.Thread.Mutex = .{},
 
-        pub fn init(writer: WriterType) Self {
+        pub fn init(writer: std.Io.Writer) Self {
             return .{ .writer = writer };
         }
 
@@ -34,7 +33,7 @@ pub fn Writer(
         ) !void {
             self.mutex.lock();
             defer self.mutex.unlock();
-            try opts.format.write(self.writer, context);
+            try opts.format.write(&self.writer, context);
         }
 
         pub fn enabled(comptime log_level: std.log.Level) bool {
@@ -52,6 +51,7 @@ pub fn Console(
 ) type {
     return struct {
         const Self = @This();
+        var buffer: [4096]u8 = undefined;
 
         pub const init: Self = .{};
 
@@ -59,9 +59,8 @@ pub fn Console(
             _: *Self,
             context: *const Context,
         ) !void {
-            const stderr = std.io.getStdErr().writer();
-            var bw = std.io.bufferedWriter(stderr);
-            const writer = bw.writer();
+            var writer = std.fs.File.stderr().writer(&buffer);
+            var stderr = &writer.interface;
 
             // we use this lock to be compitable with std.Progress
             // because of this we can't use `Writer` appender as it has its own mutex
@@ -69,8 +68,8 @@ pub fn Console(
             std.debug.lockStdErr();
             defer std.debug.unlockStdErr();
             nosuspend {
-                try opts.format.write(writer, context);
-                try bw.flush();
+                try opts.format.write(stderr, context);
+                try stderr.flush();
             }
         }
 
@@ -88,7 +87,8 @@ pub fn File(
 ) type {
     return struct {
         const Self = @This();
-        const Inner = Writer(level, opts, std.fs.File.Writer);
+        const Inner = Writer(level, opts);
+        var buffer: [4096]u8 = undefined;
 
         inner: Inner,
 
@@ -108,7 +108,7 @@ pub fn File(
         /// The file will be appended to if it already contains content.
         pub fn initFromFile(file: std.fs.File) !Self {
             try file.seekTo(try file.getEndPos());
-            return .{ .inner = .init(file.writer()) };
+            return .{ .inner = .init(file.writer(&buffer).interface) };
         }
 
         pub inline fn log(

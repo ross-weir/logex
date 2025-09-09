@@ -21,7 +21,7 @@ fn sortDirectives(_: void, a: Directive, b: Directive) bool {
 }
 
 fn parse(allocator: Allocator, slice: []const u8) ![]Directive {
-    var list: std.ArrayListUnmanaged(Directive) = .empty;
+    var list: std.ArrayList(Directive) = .empty;
     var iter = std.mem.tokenizeScalar(u8, slice, ',');
 
     while (iter.next()) |directive| {
