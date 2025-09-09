@@ -3,30 +3,28 @@ const logex = @import("logex");
 
 // Basic example showing how to implement a custom appender
 // Logs to `stdout` as opposed to the logex provided console logger that uses `stderr`.
+// A real implementation would also sync access to stdout using a mutex, etc.
 pub fn CustomAppender(
     comptime level: std.log.Level,
     comptime opts: logex.appenders.Options,
 ) type {
     return struct {
         const Self = @This();
-
-        writer: std.fs.File.Writer,
-
-        pub fn init() Self {
-            const stdout = std.io.getStdOut();
-
-            return .{ .writer = stdout.writer() };
-        }
+        var buffer: [4096]u8 = undefined;
 
         pub fn log(
-            self: *Self,
+            _: *Self,
             context: *const logex.Context,
         ) !void {
-            try opts.format.write(self.writer, context);
+            var writer = std.fs.File.stdout().writer(&buffer);
+            const stdout = &writer.interface;
+
+            try opts.format.write(stdout, context);
+            try stdout.flush();
         }
 
+        // simply checks log level but could include more complicated "enabled" logic
         pub fn enabled(comptime log_level: std.log.Level) bool {
-            // could include more complicated "enabled" logic
             return @intFromEnum(log_level) <= @intFromEnum(level);
         }
     };
@@ -41,8 +39,7 @@ pub const std_options: std.Options = .{
 
 pub fn main() !void {
     std.debug.print("Running 'custom_appender' example\n", .{});
-
-    try Logger.init(.{}, .{.init()});
+    try Logger.init(.{}, .{.{}});
 
     std.log.info("Logging some output", .{});
 }

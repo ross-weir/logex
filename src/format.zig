@@ -6,7 +6,7 @@ const Context = root.Context;
 
 /// Function type that is called to format log messages.
 pub const FormatFn = *const fn (
-    writer: anytype,
+    writer: *std.Io.Writer,
     context: *const Context,
 ) anyerror!void;
 
@@ -21,7 +21,7 @@ pub const Format = union(enum) {
 
     pub fn write(
         self: Format,
-        writer: anytype,
+        writer: *std.Io.Writer,
         context: *const Context,
     ) anyerror!void {
         return switch (self) {
@@ -33,9 +33,9 @@ pub const Format = union(enum) {
 };
 
 fn text(
-    writer: anytype,
+    writer: *std.Io.Writer,
     context: *const Context,
-) @TypeOf(writer).Error!void {
+) !void {
     if (context.timestamp) |ts| {
         try writer.print("{s} ", .{ts});
     }
@@ -48,13 +48,10 @@ fn text(
 }
 
 fn json(
-    writer: anytype,
+    writer: *std.Io.Writer,
     context: *const Context,
-) @TypeOf(writer).Error!void {
-    try std.json.stringify(
-        context,
-        .{ .emit_null_optional_fields = false },
-        writer,
-    );
+) !void {
+    var stringify: std.json.Stringify = .{ .writer = writer, .options = .{ .emit_null_optional_fields = false } };
+    try stringify.write(context);
     try writer.writeByte('\n');
 }
