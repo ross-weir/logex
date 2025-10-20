@@ -20,6 +20,7 @@
 
 - **Drop-in Extension**: Extends `std.log` with extra features - easy to add and remove without changing logging calls throughout your project
 - **Extensible Appenders**: Comes with console and file appenders, with the ability to implement custom appenders for any logging destination
+- **ANSI Styling**: Optional ANSI color formatting for console output with palette customization and automatic TTY detection
 - **Customize Formatting**: Multiple format options:
   - Text (compatible with `std.log` default format)
   - JSON
@@ -65,8 +66,10 @@ const std = @import("std");
 const logex = @import("logex");
 
 // Create appender types
-// Log to the console at debug and above levels, using default text formatting
-const ConsoleAppender = logex.appenders.Console(.debug, .{});
+// Log to the console at debug and above levels, emitting ANSI colors when supported
+const ConsoleAppender = logex.appenders.Console(.debug, .{
+    .format = .{ .styled_text = .{} },
+});
 // Log to file at info and above levels, using JSON formatting
 const FileAppender = logex.appenders.File(.info, .{
     .format = .json,
@@ -130,8 +133,28 @@ See a more complete example [here](example/src/custom_appender.zig).
 `logex` supports multiple output formats:
 
 - **Text**: Default format compatible with `std.log`
+- **Styled Text**: ANSI colored text output with configurable palettes and detection modes
 - **JSON**: Structured logging in JSON format
 - **Custom**: Implement your own formatting function
+
+#### Styled Text Formatting
+
+Styled text formatting mirrors the Zerolog style shown above and can be enabled per appender. Colors are only emitted when the optional `supports_color_fn` reports that the writer supports ANSI sequences (the console appender wires this automatically to stderr's TTY detection).
+
+```zig
+const ConsoleAppender = logex.appenders.Console(.info, .{
+    .format = .{ .styled_text = .{
+        .color_mode = .auto, // default: enable colors when stderr is a TTY
+        .palette = .{
+            .scope = logex.format.ansi.cyan,
+        },
+    } },
+});
+```
+
+To force colors on or off regardless of terminal detection, set `color_mode` to `.force_on` or `.force_off`. Custom palettes let you override any of the timestamp, level, scope, thread, or message colors, or even replace them with empty strings to suppress styling entirely.
+
+> **Windows terminals:** Virtual Terminal Processing must be enabled (Windows 10+ terminals do this automatically). When the console does not advertise ANSI support, the auto mode will disable colors.
 
 See a complete example using a custom formatter [here](example/src/custom_format.zig).
 

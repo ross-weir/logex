@@ -45,7 +45,7 @@ pub fn Writer(
 
 /// Console appender writes logs to stderr.
 /// Uses the `std.debug` stderr mutex so Console appender
-/// is compitable with std.Progress.
+/// is compatible with std.Progress.
 pub fn Console(
     comptime level: std.log.Level,
     comptime opts: Options,
@@ -53,6 +53,7 @@ pub fn Console(
     return struct {
         const Self = @This();
         var buffer: [4096]u8 = undefined;
+        const console_format = configureConsoleFormat(opts.format);
 
         pub const init: Self = .{};
 
@@ -63,13 +64,13 @@ pub fn Console(
             var writer = std.fs.File.stderr().writer(&buffer);
             var stderr = &writer.interface;
 
-            // we use this lock to be compitable with std.Progress
+            // we use this lock to be compatible with std.Progress
             // because of this we can't use `Writer` appender as it has its own mutex
             // and the std.Progress mutex isn't pub
             std.debug.lockStdErr();
             defer std.debug.unlockStdErr();
             nosuspend {
-                try opts.format.write(stderr, context);
+                try console_format.write(stderr, context);
                 try stderr.flush();
             }
         }
@@ -77,6 +78,27 @@ pub fn Console(
         pub fn enabled(comptime log_level: std.log.Level) bool {
             return @intFromEnum(log_level) <= @intFromEnum(level);
         }
+    };
+}
+
+fn configureConsoleFormat(comptime fmt: format.Format) format.Format {
+    return switch (fmt) {
+        .styled_text => |options| .{
+            .styled_text = .{
+                .color_mode = options.color_mode,
+                .palette = options.palette,
+                .supports_color_fn = options.supports_color_fn orelse detectStderrColor,
+            },
+        },
+        else => fmt,
+    };
+}
+
+fn detectStderrColor() bool {
+    const config = std.io.tty.detectConfig(std.fs.File.stderr());
+    return switch (config) {
+        .escape_codes => true,
+        else => false,
     };
 }
 
