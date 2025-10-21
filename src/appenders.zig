@@ -8,6 +8,16 @@ const Context = root.Context;
 pub const Options = struct {
     /// The format to use when writting log lines.
     format: format.Format = .text,
+    /// Output stream to write log messages to.
+    stream: Stream = .stderr,
+};
+
+/// Streams that the console appender can write to.
+pub const Stream = enum {
+    /// Write log output to stderr (default).
+    stderr,
+    /// Write log output to stdout.
+    stdout,
 };
 
 /// A generic writer based appender.
@@ -43,9 +53,9 @@ pub fn Writer(
     };
 }
 
-/// Console appender writes logs to stderr.
-/// Uses the `std.debug` stderr mutex so Console appender
-/// is compitable with std.Progress.
+/// Console appender writes logs to a configurable stream.
+/// When writing to stderr the `std.debug` mutex is used so the console appender
+/// remains compatible with std.Progress (stdout has no equivalent lock).
 pub fn Console(
     comptime level: std.log.Level,
     comptime opts: Options,
@@ -60,17 +70,22 @@ pub fn Console(
             _: *Self,
             context: *const Context,
         ) !void {
-            var writer = std.fs.File.stderr().writer(&buffer);
-            var stderr = &writer.interface;
+            var writer = switch (opts.stream) {
+                .stderr => std.fs.File.stderr().writer(&buffer),
+                .stdout => std.fs.File.stdout().writer(&buffer),
+            };
+            var output = &writer.interface;
 
-            // we use this lock to be compitable with std.Progress
+            // we use this lock to be compatible with std.Progress
             // because of this we can't use `Writer` appender as it has its own mutex
             // and the std.Progress mutex isn't pub
-            std.debug.lockStdErr();
-            defer std.debug.unlockStdErr();
+            if (comptime opts.stream == .stderr) {
+                std.debug.lockStdErr();
+                defer std.debug.unlockStdErr();
+            }
             nosuspend {
-                try opts.format.write(stderr, context);
-                try stderr.flush();
+                try opts.format.write(output, context);
+                try output.flush();
             }
         }
 
@@ -134,4 +149,15 @@ pub fn File(
             return Inner.enabled(log_level);
         }
     };
+}
+
+test "console appender can target stdout" {
+    const ConsoleStdout = Console(.info, .{ .stream = .stdout });
+    var appender = ConsoleStdout.init;
+    const ctx = Context{
+        .level = "info",
+        .scope = "test",
+        .message = "stdout stream",
+    };
+    try appender.log(&ctx);
 }
