@@ -103,8 +103,18 @@ Removing `logex` is as simple as removing `Logger.logFn` and deleting initialzat
 `logex` comes with two built-in appenders:
 
 - **Writer Appender**: A generic threadsafe appender that writes to an underlying `AnyWriter`
-- **Console Appender**: Logs to `stderr`, works the same as the default `logFn` from `std.log`
+- **Console Appender**: Logs to a configurable stream (defaults to `stderr`) and works the same as the default `logFn` from `std.log`
 - **File Appender**: Logs to file
+
+Switch the console output to `stdout` by setting the `stream` option:
+
+```zig
+const ConsoleStdout = logex.appenders.Console(.debug, .{
+    .stream = .stdout,
+});
+```
+
+Note: Only the stderr stream integrates with `std.Progress`'s locking; stdout is intended for simple printing.
 
 ### Creating Custom Appenders
 
