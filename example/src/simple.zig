@@ -6,8 +6,10 @@ const std = @import("std");
 const logex = @import("logex");
 
 /// Create our console appender type.
-/// Configured to log debug level and above messages & using default options.
-const ConsoleAppender = logex.appenders.Console(.debug, .{});
+/// Configured to log debug level and above messages and emit ANSI styled output when supported.
+const ConsoleAppender = logex.appenders.Console(.debug, .{
+    .format = .{ .styled_text = .{} },
+});
 
 // Create our file appender type.
 // Configured to log info level and above messages, using json formatting.
