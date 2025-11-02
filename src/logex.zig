@@ -80,6 +80,8 @@ pub const TimestampOptions = union(enum) {
 
 /// Main logex comptime configuration.
 pub const LogexOptions = struct {
+    /// The size of the buffer used to format log messages.
+    buffer_size: usize = 2048,
     /// Configuration for timestamps in log messages.
     ///
     /// If not provided no timestamps will be included
@@ -228,7 +230,7 @@ pub fn Logex(comptime opts: LogexOptions, comptime appender_types: anytype) type
 
             // maybe better to use a thread local var
             // if there's many versions of this func it could add up
-            var buf: [2048]u8 = undefined;
+            var buf: [opts.buffer_size]u8 = undefined;
             // panic for now, see if we can get away with stack alloc buffer
             var context: Context = .{ .scope = @tagName(scope), .level = comptime level.asText(), .message = std.fmt.bufPrint(&buf, fmt, args) catch @panic("formatted buffer too small") };
 
