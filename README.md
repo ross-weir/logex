@@ -102,7 +102,6 @@ Removing `logex` is as simple as removing `Logger.logFn` and deleting initialzat
 
 `logex` comes with two built-in appenders:
 
-- **Writer Appender**: A generic threadsafe appender that writes to an underlying `AnyWriter`
 - **Console Appender**: Logs to `stderr`, works the same as the default `logFn` from `std.log`
 - **File Appender**: Logs to file
 
