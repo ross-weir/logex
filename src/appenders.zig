@@ -54,10 +54,11 @@ pub fn File(
 ) type {
     return struct {
         const Self = @This();
-        var buffer: [opts.buffer_size]u8 = undefined;
 
         file: std.fs.File,
         mutex: std.Thread.Mutex = .{},
+        buffer: [opts.buffer_size]u8 = undefined,
+        pos: u64,
 
         /// Create a File appender that writes to the supplied file path.
         /// The file will be appended to if it already exists.
@@ -74,21 +75,21 @@ pub fn File(
         /// Creates the file appender using the provided File.
         /// The file will be appended to if it already contains content.
         pub fn initFromFile(file: std.fs.File) !Self {
-            try file.seekTo(try file.getEndPos());
-
-            return .{ .file = file };
+            return .{ .file = file, .pos = try file.getEndPos() };
         }
 
         pub fn log(
             self: *Self,
             context: *const Context,
         ) !void {
-            var writer = self.file.writer(&buffer);
-            var interface = &writer.interface;
-
             self.mutex.lock();
             defer self.mutex.unlock();
 
+            var writer = self.file.writer(&self.buffer);
+            writer.pos = self.pos;
+            defer self.pos = writer.pos;
+
+            const interface = &writer.interface;
             try opts.format.write(interface, context);
             try interface.flush();
         }
