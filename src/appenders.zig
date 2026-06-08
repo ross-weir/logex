@@ -64,7 +64,9 @@ pub fn File(
         /// Create a File appender that writes to the supplied file path.
         /// The file will be appended to if it already exists.
         pub fn init(io: std.Io, filepath: []const u8) !Self {
-            const flags: std.Io.File.CreateFlags = .{ .truncate = false };
+            // We require read flags so we can get the file length and adjust the write cursor
+            // position to the end of the file (we append by default).
+            const flags: std.Io.File.CreateFlags = .{ .truncate = false, .read = true };
             const file = try if (std.fs.path.isAbsolute(filepath))
                 std.Io.Dir.createFileAbsolute(io, filepath, flags)
             else
@@ -76,7 +78,7 @@ pub fn File(
         /// Creates the file appender using the provided File.
         /// The file will be appended to if it already contains content.
         pub fn initFromFile(io: std.Io, file: std.Io.File) !Self {
-            return .{ .file = file, .pos = (try file.stat(io)).size };
+            return .{ .file = file, .pos = try file.length(io) };
         }
 
         pub fn log(
