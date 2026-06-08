@@ -67,19 +67,15 @@ pub const EnvFilter = struct {
     directives: []Directive,
 
     /// Initializes a new EnvFilter using the default environment variable (ZIG_LOG)
-    /// Returns an error if the environment variable cannot be read or parsed
-    pub fn init(allocator: Allocator) !Self {
-        return initEnvVar(allocator, default_env);
+    /// Returns an error if the environment variable cannot be parsed
+    pub fn init(allocator: Allocator, env_map: *const std.process.Environ.Map) !Self {
+        return initEnvVar(allocator, env_map, default_env);
     }
 
     /// Initializes a new EnvFilter using a specific environment variable
-    /// Returns an error if the environment variable cannot be read or parsed
-    pub fn initEnvVar(allocator: Allocator, key: []const u8) !Self {
-        const slice = std.process.getEnvVarOwned(allocator, key) catch |err| switch (err) {
-            error.EnvironmentVariableNotFound => return .{ .directives = &[_]Directive{} },
-            else => return err,
-        };
-        defer allocator.free(slice);
+    /// Returns an error if the environment variable cannot be parsed
+    pub fn initEnvVar(allocator: Allocator, env_map: *const std.process.Environ.Map, key: []const u8) !Self {
+        const slice = env_map.get(key) orelse return .{ .directives = &[_]Directive{} };
         return initSlice(allocator, slice);
     }
 

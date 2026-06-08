@@ -26,17 +26,18 @@ const module_c = std.log.scoped(.module_c);
 //   ZIG_LOG=info - Show all info and above logs
 //   ZIG_LOG=module_a=debug,module_b=warn - Debug logs for module_a, warn for module_b
 //   ZIG_LOG=info,module_c=debug - Info for all, debug for module_c
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
     std.debug.print("Running 'filter' example\n", .{});
 
     // Create our console appender instance
     const console_appender = ConsoleAppender.init;
     // Create our environment variable filter
-    const env_filter = try logex.filter.EnvFilter.init(std.heap.page_allocator);
-    defer env_filter.deinit(std.heap.page_allocator);
+    const env_filter = try logex.filter.EnvFilter.init(init.gpa, init.environ_map);
+    defer env_filter.deinit(init.gpa);
 
     // Initialize our logger using the appender instance and environment variable filter
     try Logger.init(
+        init.io,
         .{ .filter = env_filter.filter() },
         .{console_appender},
     );

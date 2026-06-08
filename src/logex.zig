@@ -5,28 +5,13 @@ const Allocator = std.mem.Allocator;
 
 fn AppenderInstances(comptime appenders: anytype) type {
     const fields = std.meta.fields(@TypeOf(appenders));
-    var new_fields: [fields.len]std.builtin.Type.StructField = undefined;
+    var types: [fields.len]type = undefined;
 
     inline for (fields, 0..) |field, i| {
-        const T = @field(appenders, field.name);
-
-        new_fields[i] = .{
-            .name = field.name,
-            .type = ?T,
-            .default_value_ptr = null,
-            .is_comptime = false,
-            .alignment = std.meta.alignment(?T),
-        };
+        types[i] = ?@field(appenders, field.name);
     }
 
-    return @Type(.{
-        .@"struct" = .{
-            .layout = .auto,
-            .fields = &new_fields,
-            .decls = &[_]std.builtin.Type.Declaration{},
-            .is_tuple = true,
-        },
-    });
+    return @Tuple(&types);
 }
 
 /// Configuration options for displaying timestamps in log messages.
@@ -150,7 +135,8 @@ pub const InitializeError = error{AlreadyInitialized};
 /// const Appender = struct {
 ///     pub fn log(
 ///         _: *Appender,
-///        context: *const logex.Context,
+///         io: std.Io,
+///         context: *const logex.Context,
 ///     ) !void {}
 ///
 ///     pub fn enabled(comptime log_level: std.log.Level) bool {
@@ -184,6 +170,7 @@ pub fn Logex(comptime opts: LogexOptions, comptime appender_types: anytype) type
         pub const Appenders = AppenderInstances(appender_types);
         var appenders: Appenders = undefined;
         var filter: ?Filter = null;
+        var io: std.Io = undefined;
 
         /// Initializes logex in a thread-safe manner.
         ///
@@ -193,7 +180,7 @@ pub fn Logex(comptime opts: LogexOptions, comptime appender_types: anytype) type
         ///
         /// Options argument is a tuple containing appender instances in the same order that the types
         /// were provided to the `Logex` type constructor.
-        pub fn init(init_opts: InitOptions, appender_instances: Appenders) InitializeError!void {
+        pub fn init(init_io: std.Io, init_opts: InitOptions, appender_instances: Appenders) InitializeError!void {
             if (state.cmpxchgStrong(.uninitialized, .initializing, .acquire, .acquire)) |current| {
                 switch (current) {
                     .initialized => return InitializeError.AlreadyInitialized,
@@ -207,6 +194,7 @@ pub fn Logex(comptime opts: LogexOptions, comptime appender_types: anytype) type
                 }
             } else {
                 appenders = appender_instances;
+                io = init_io;
 
                 if (init_opts.filter) |f| {
                     filter = f;
@@ -218,7 +206,7 @@ pub fn Logex(comptime opts: LogexOptions, comptime appender_types: anytype) type
 
         pub fn logFn(
             comptime level: std.log.Level,
-            comptime scope: @Type(.enum_literal),
+            comptime scope: @EnumLiteral(),
             comptime fmt: []const u8,
             args: anytype,
         ) void {
@@ -242,7 +230,7 @@ pub fn Logex(comptime opts: LogexOptions, comptime appender_types: anytype) type
             if (comptime opts.show_thread) |id| {
                 var thread: [std.Thread.max_name_len]u8 = undefined;
                 context.thread = comptime switch (id) {
-                    .id => std.fmt.bufPrint(&thread, "{d}", .{std.Thread.getCurrentId()}) catch unreachable,
+                    .id => std.fmt.bufPrint(&thread, "{d}", .{std.Thread.getCurrentId()}) catch return,
                 };
             }
 
@@ -251,7 +239,7 @@ pub fn Logex(comptime opts: LogexOptions, comptime appender_types: anytype) type
                 if (comptime T.enabled(level)) {
                     if (@field(appenders, field.name)) |*appender| {
                         // TODO: allow users to provide a error handler?
-                        appender.log(&context) catch {};
+                        appender.log(io, &context) catch {};
                     }
                 }
             }

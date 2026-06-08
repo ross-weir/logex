@@ -80,13 +80,13 @@ pub const std_options: std.Options = .{
     .logFn = Logger.logFn,
 };
 
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
     // Initialize appender instances
     const console_appender = ConsoleAppender.init;
-    const file_appender = try FileAppender.init("app.log");
+    const file_appender = try FileAppender.init(init.io, "app.log");
 
     // Initialize logger
-    try Logger.init(.{}, .{ console_appender, file_appender });
+    try Logger.init(init.io, .{}, .{ console_appender, file_appender });
 
     // Use std.log as usual
     // Debug message will only be displayed on console
@@ -115,6 +115,7 @@ const logex = @import("logex");
 const MyCustomAppender = struct {
     pub fn log(
         self: *@This(),
+        io: std.Io,
         context: *const logex.Context,
     ) !void {
         // Implement your logging logic

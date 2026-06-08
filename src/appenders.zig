@@ -26,14 +26,15 @@ pub fn Console(
 
         pub fn log(
             _: *Self,
+            io: std.Io,
             context: *const Context,
         ) !void {
-            var writer = std.fs.File.stderr().writer(&buffer);
-            var stderr = &writer.interface;
+            const prev_cancel = io.swapCancelProtection(.blocked);
+            defer _ = io.swapCancelProtection(prev_cancel);
 
-            // we use this lock to be compitable with std.Progress
-            std.debug.lockStdErr();
-            defer std.debug.unlockStdErr();
+            const locked = std.debug.lockStderr(&buffer);
+            defer std.debug.unlockStderr();
+            const stderr = locked.terminal().writer;
             nosuspend {
                 try opts.format.write(stderr, context);
                 try stderr.flush();
@@ -55,37 +56,41 @@ pub fn File(
     return struct {
         const Self = @This();
 
-        file: std.fs.File,
-        mutex: std.Thread.Mutex = .{},
+        file: std.Io.File,
+        mutex: std.Io.Mutex = .init,
         buffer: [opts.buffer_size]u8 = undefined,
         pos: u64,
 
         /// Create a File appender that writes to the supplied file path.
         /// The file will be appended to if it already exists.
-        pub fn init(filepath: []const u8) !Self {
-            const flags: std.fs.File.CreateFlags = .{ .truncate = false };
+        pub fn init(io: std.Io, filepath: []const u8) !Self {
+            const flags: std.Io.File.CreateFlags = .{ .truncate = false };
             const file = try if (std.fs.path.isAbsolute(filepath))
-                std.fs.createFileAbsolute(filepath, flags)
+                std.Io.Dir.createFileAbsolute(io, filepath, flags)
             else
-                std.fs.cwd().createFile(filepath, flags);
+                std.Io.Dir.cwd().createFile(io, filepath, flags);
 
-            return .initFromFile(file);
+            return .initFromFile(io, file);
         }
 
         /// Creates the file appender using the provided File.
         /// The file will be appended to if it already contains content.
-        pub fn initFromFile(file: std.fs.File) !Self {
-            return .{ .file = file, .pos = try file.getEndPos() };
+        pub fn initFromFile(io: std.Io, file: std.Io.File) !Self {
+            return .{ .file = file, .pos = (try file.stat(io)).size };
         }
 
         pub fn log(
             self: *Self,
+            io: std.Io,
             context: *const Context,
         ) !void {
-            self.mutex.lock();
-            defer self.mutex.unlock();
+            const prev_cancel = io.swapCancelProtection(.blocked);
+            defer _ = io.swapCancelProtection(prev_cancel);
 
-            var writer = self.file.writer(&self.buffer);
+            self.mutex.lockUncancelable(io);
+            defer self.mutex.unlock(io);
+
+            var writer = self.file.writer(io, &self.buffer);
             writer.pos = self.pos;
             defer self.pos = writer.pos;
 
