@@ -224,12 +224,12 @@ pub fn Logex(comptime opts: LogexOptions, comptime appender_types: anytype) type
 
             if (comptime opts.show_timestamp) |ts| {
                 var timestamp: [64]u8 = undefined;
-                context.timestamp = ts.write(&timestamp, std.time.milliTimestamp()) catch return;
+                context.timestamp = ts.write(&timestamp, std.Io.Clock.real.now(io).toMilliseconds()) catch return;
             }
 
             if (comptime opts.show_thread) |id| {
                 var thread: [std.Thread.max_name_len]u8 = undefined;
-                context.thread = comptime switch (id) {
+                context.thread = switch (id) {
                     .id => std.fmt.bufPrint(&thread, "{d}", .{std.Thread.getCurrentId()}) catch return,
                 };
             }
