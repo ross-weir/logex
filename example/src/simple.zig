@@ -27,7 +27,7 @@ pub const std_options: std.Options = .{
 
 const scoped = std.log.scoped(.custom);
 
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
     std.debug.print("Running 'simple' example\n", .{});
 
     // Create our console appender instance
@@ -36,10 +36,11 @@ pub fn main() !void {
 
     // Create our file appender instance
     // Passing the file name as init parameter
-    const file_appender = try FileAppender.init("app.log");
+    const file_appender = try FileAppender.init(init.io, "app.log");
 
     // Initialize our logger using the appender instances
     try Logger.init(
+        init.io,
         .{},
         .{ console_appender, file_appender },
     );

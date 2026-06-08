@@ -14,9 +14,13 @@ pub fn CustomAppender(
 
         pub fn log(
             _: *Self,
+            io: std.Io,
             context: *const logex.Context,
         ) !void {
-            var writer = std.fs.File.stdout().writer(&buffer);
+            const prev_cancel = io.swapCancelProtection(.blocked);
+            defer _ = io.swapCancelProtection(prev_cancel);
+
+            var writer = std.Io.File.stdout().writer(io, &buffer);
             const stdout = &writer.interface;
 
             try opts.format.write(stdout, context);
@@ -37,9 +41,9 @@ pub const std_options: std.Options = .{
     .logFn = Logger.logFn,
 };
 
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
     std.debug.print("Running 'custom_appender' example\n", .{});
-    try Logger.init(.{}, .{.{}});
+    try Logger.init(init.io, .{}, .{.{}});
 
     std.log.info("Logging some output", .{});
 }
